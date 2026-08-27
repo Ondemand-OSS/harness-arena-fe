@@ -746,14 +746,23 @@ function InProgressRuns({ entries, onStop, busyRunIds, isAdmin }) {
             <span className={e.status === 'pending' ? 'text-ink-3' : 'text-warn'}>{e.status === 'pending' ? 'Queued' : 'Running'}</span>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {e.status === 'running' && (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-line bg-floating px-2.5 py-0.5 font-mono-arena text-[10px] font-medium uppercase tracking-wider text-ink-2 transition-colors hover:border-warn/40 hover:bg-warn/10 hover:text-warn"
-                  onClick={() => setViewingRun(e)}
-                >
-                  <IconCode className="text-[10px]" aria-hidden="true" />
-                  Logs
-                </button>
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good/10 px-2 py-0.5 font-mono-arena text-[9px] font-bold uppercase tracking-[0.14em] text-good shadow-sm">
+                    <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-good opacity-70" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-good" />
+                    </span>
+                    Live
+                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-line bg-floating px-2.5 py-0.5 font-mono-arena text-[10px] font-medium uppercase tracking-wider text-ink-2 transition-colors hover:border-warn/40 hover:bg-warn/10 hover:text-warn"
+                    onClick={() => setViewingRun(e)}
+                  >
+                    <IconCode className="text-[10px]" aria-hidden="true" />
+                    Logs
+                  </button>
+                </>
               )}
               {isAdmin && e.can_stop && (
                 <button type="button" className="shrink-0 text-bad hover:underline disabled:opacity-50" disabled={busyRunIds.has(e.run_id)} onClick={() => onStop(e.run_id)}>
