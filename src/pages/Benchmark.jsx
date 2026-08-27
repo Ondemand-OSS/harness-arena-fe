@@ -9,7 +9,7 @@ import TaskPromptModal from '../components/TaskPromptModal.jsx'
 import { EmptyState, HarnessAvatar, LoadingState, PageHeader, Tag } from '../components/ui.jsx'
 import { IconBrowser, IconChevron, IconClose, IconPaperclip } from '../components/icons.jsx'
 import RevalidatingBadge from '../components/RevalidatingBadge.jsx'
-import { invalidateCache, readCache, writeCache } from '../lib/pageCache.js'
+import { readCache, writeCache } from '../lib/pageCache.js'
 import { isWebProjectTask } from '../lib/webProject.js'
 
 // Module-scoped  -  survives navigating away and back within the same SPA
@@ -347,7 +347,6 @@ export default function Benchmark() {
     setSubmitting(true)
     try {
       const created = await api.submitBatch(ids, selectedHarnesses, Number(selectedProfileId))
-      invalidateCache('battleLog:rows:')
       setBatch(created)
       pollBatch(created.id)
     } catch (err) {
