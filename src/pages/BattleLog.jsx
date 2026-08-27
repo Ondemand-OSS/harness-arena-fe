@@ -776,6 +776,7 @@ function InProgressRuns({ entries, onStop, busyRunIds, isAdmin }) {
       {viewingRun && (
         <RunLogStreamModal
           runId={viewingRun.run_id}
+          harnessKey={viewingRun.harness_key}
           harnessName={viewingRun.harness_name}
           onClose={() => setViewingRun(null)}
         />

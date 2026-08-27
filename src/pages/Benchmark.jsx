@@ -348,7 +348,7 @@ export default function Benchmark() {
     try {
       const created = await api.submitBatch(ids, selectedHarnesses, Number(selectedProfileId))
       setBatch(created)
-      pollBatch(created.id)
+      navigate('/battles', { state: { submittedTaskIds: ids } })
     } catch (err) {
       if (/only run 2 tasks at a time/i.test(err.message)) showTaskSelectionNotice(err.message)
       else setError(err.message)
