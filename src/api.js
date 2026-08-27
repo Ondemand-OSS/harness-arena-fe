@@ -108,7 +108,9 @@ async function request(method, path, body, retryAfterRefresh = true) {
     ) {
       window.dispatchEvent(new CustomEvent('arena:rate-limit', { detail }))
     }
-    throw new Error(detail)
+    const error = new Error(detail)
+    error.status = res.status
+    throw error
   }
   if (res.status === 204) return null
   return res.json()

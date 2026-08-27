@@ -4,6 +4,11 @@ import { api } from '../api.js'
 
 const TERMINAL_STATUSES = new Set(['done', 'error', 'stopped'])
 const POLL_INTERVAL_MS = 1500
+const SIGN_IN_REQUIRED_MESSAGE = 'Sign in required to see the logs. Please log in.'
+
+function isSignInRequired(error) {
+  return error?.status === 401 || /sign in|required|unauthori[sz]ed|not authenticated|session expired/i.test(error?.message ?? '')
+}
 
 function statusLabel(status) {
   if (status === 'pending') return 'Queued'
@@ -31,7 +36,7 @@ function mapLogData(data) {
   }
 }
 
-function pollRunLog(runId, onUpdate, intervalMs = POLL_INTERVAL_MS) {
+function pollRunLog(runId, onUpdate, onError, intervalMs = POLL_INTERVAL_MS) {
   let cancelled = false
   let timer = null
 
@@ -41,7 +46,8 @@ function pollRunLog(runId, onUpdate, intervalMs = POLL_INTERVAL_MS) {
       const data = await api.runLog(runId)
       onUpdate(mapLogData(data))
       if (TERMINAL_STATUSES.has(data.status)) return
-    } catch {
+    } catch (error) {
+      if (onError?.(error)) return
       // transient network error — try again next tick
     }
     if (!cancelled) timer = window.setTimeout(tick, intervalMs)
@@ -64,6 +70,7 @@ export default function RunLogStreamModal({ runId, harnessName, onClose }) {
     error_message: '',
   })
   const [connected, setConnected] = useState(false)
+  const [signInRequired, setSignInRequired] = useState(false)
   const logRef = useRef(null)
 
   useEffect(() => {
@@ -75,10 +82,16 @@ export default function RunLogStreamModal({ runId, harnessName, onClose }) {
   }, [onClose])
 
   useEffect(() => {
+    setSignInRequired(false)
     setConnected(true)
     return pollRunLog(runId, (next) => {
       setStream(next)
       if (TERMINAL_STATUSES.has(next.status)) setConnected(false)
+    }, (error) => {
+      if (!isSignInRequired(error)) return false
+      setConnected(false)
+      setSignInRequired(true)
+      return true
     })
   }, [runId])
 
@@ -118,16 +131,22 @@ export default function RunLogStreamModal({ runId, harnessName, onClose }) {
             </button>
           </div>
 
-          {stream.error_message && (
+          {signInRequired ? (
+            <p className="mt-4 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-sm font-medium text-warn" role="alert">
+              {SIGN_IN_REQUIRED_MESSAGE}
+            </p>
+          ) : stream.error_message && (
             <p className="mt-4 rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 font-mono-arena text-xs text-bad">{stream.error_message}</p>
           )}
 
-          <pre
-            ref={logRef}
-            className="mt-4 min-h-[12rem] flex-1 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-[#0d1117] p-4 font-mono-arena text-xs leading-relaxed text-[#c9d1d9] sm:max-h-[60vh]"
-          >
-            {stream.raw_log || (live ? 'Waiting for output…' : 'No log output.')}
-          </pre>
+          {!signInRequired && (
+            <pre
+              ref={logRef}
+              className="mt-4 min-h-[12rem] flex-1 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-[#0d1117] p-4 font-mono-arena text-xs leading-relaxed text-[#c9d1d9] sm:max-h-[60vh]"
+            >
+              {stream.raw_log || (live ? 'Waiting for output…' : 'No log output.')}
+            </pre>
+          )}
         </section>
       </div>
     </div>,
