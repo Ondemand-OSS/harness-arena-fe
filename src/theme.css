@@ -1,0 +1,1092 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Color tokens captured from the reference "Harness Arena" UI
+   (mk-2-moon.vercel.app) so this app's look matches it closely. */
+:root {
+  color-scheme: light;
+  --bg: #fbf9f3;
+  --surface: #ffffff;
+  --elevated: #f0eae0;
+  --floating: #f5f0e7;
+  --line: #efede9;
+  --line-strong: #dad3c9;
+  --ink: #2e2b29;
+  --ink-2: #55504c;
+  --ink-3: #7d776f;
+  --side-a: #1265c9;
+  --side-b: #c4711c;
+  --side-c: #0f8f85;
+  --side-d: #8a3ec1;
+  --side-e: #c0328a;
+  --side-f: #5a7d1f;
+  /* Text-on-surface variants of the six slot colors. The base --side-* values
+     are tuned as FILLS (white text on top: SlotBadge, an active score button),
+     which makes several of them too light to use as text themselves  -  the
+     QA audit measured the "Output A" label at 3.17:1 against its card,
+     failing WCAG 1.4.3 at 14px semibold (HA-VW-14). These are the same hues
+     pushed to at least 5.3:1 against every surface they land on (--surface,
+     --elevated, --floating), and they are used ONLY where a slot color is
+     rendered as text. Fills keep the base token so badges don't lose their
+     punch. */
+  --side-a-ink: #0f56ad;
+  --side-b-ink: #8f4e08;
+  --side-c-ink: #0a6a63;
+  --side-d-ink: #7a34ad;
+  --side-e-ink: #a82877;
+  --side-f-ink: #415c13;
+  --side-a-soft: rgba(18, 101, 201, 0.1);
+  --side-b-soft: rgba(196, 113, 28, 0.12);
+  --side-c-soft: rgba(15, 143, 133, 0.12);
+  --side-d-soft: rgba(138, 62, 193, 0.12);
+  --side-e-soft: rgba(192, 50, 138, 0.12);
+  --side-f-soft: rgba(90, 125, 31, 0.12);
+  --cta: #252420;
+  --on-cta: #fbf9f3;
+  --link: #1d5fc4;
+  --link-hover: #123f87;
+  --highlight: #f4c60a;
+  --gold: #a3721a;
+  --good: #38a438;
+  --bad: #d2413a;
+  --warn: #dca506;
+  --awaiting: #c4711c;
+  --tint-gold: rgba(220, 160, 50, 0.16);
+  --podium-gold: linear-gradient(135deg, rgba(233, 166, 44, 0.24), rgba(150, 106, 25, 0.24));
+  --podium-silver: linear-gradient(135deg, rgba(189, 191, 196, 0.35), rgba(103, 106, 115, 0.24));
+  --podium-bronze: linear-gradient(135deg, rgba(204, 117, 28, 0.24), rgba(113, 68, 22, 0.24));
+  --rank-gold-bg: #f6dfa0;
+  --rank-gold-ink: #6c4700;
+  --rank-silver-bg: #e0e3e7;
+  --rank-silver-ink: #46505b;
+  --rank-bronze-bg: #edc19a;
+  --rank-bronze-ink: #754016;
+  --shadow-card: 0 1px 2px rgba(46, 43, 41, 0.04), 0 4px 16px rgba(46, 43, 41, 0.05);
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #242322;
+  --surface: #333130;
+  --elevated: #3d3b39;
+  --floating: #2b2927;
+  --line: #423e3b;
+  --line-strong: #5f5a54;
+  --ink: #f5f0e7;
+  --ink-2: #d8d3cc;
+  --ink-3: #a09a92;
+  --side-a: #3987e5;
+  --side-b: #d95926;
+  --side-c: #22a396;
+  --side-d: #a869e0;
+  --side-e: #e0559f;
+  --side-f: #8bb63f;
+  /* Same idea as the light theme's, lightened instead of darkened  -  each is
+     at least 4.8:1 against --elevated (#3d3b39), the tightest of the three
+     dark surfaces. The dark-theme "Output A" pink was the 3.17:1 measurement
+     in the audit. */
+  --side-a-ink: #7ab4f5;
+  --side-b-ink: #f0956a;
+  --side-c-ink: #5fd0c2;
+  --side-d-ink: #c9a2f0;
+  --side-e-ink: #f19cc6;
+  --side-f-ink: #b6d97a;
+  --side-a-soft: rgba(57, 135, 229, 0.14);
+  --side-b-soft: rgba(217, 89, 38, 0.14);
+  --side-c-soft: rgba(34, 163, 150, 0.15);
+  --side-d-soft: rgba(168, 105, 224, 0.15);
+  --side-e-soft: rgba(224, 85, 159, 0.15);
+  --side-f-soft: rgba(139, 182, 63, 0.15);
+  --cta: #fbf9f3;
+  --on-cta: #252420;
+  --link: #5aa8ff;
+  --link-hover: #8cc4ff;
+  --highlight: #f4c60a;
+  --gold: #f0b23c;
+  --good: #3dbf3d;
+  --bad: #ef6660;
+  --warn: #f4c60a;
+  --awaiting: #f09a4a;
+  --tint-gold: rgba(233, 166, 44, 0.18);
+  --podium-gold: linear-gradient(135deg, rgba(233, 166, 44, 0.28), rgba(150, 106, 25, 0.28));
+  --podium-silver: linear-gradient(135deg, rgba(189, 191, 196, 0.22), rgba(103, 106, 115, 0.22));
+  --podium-bronze: linear-gradient(135deg, rgba(204, 117, 28, 0.28), rgba(113, 68, 22, 0.28));
+  --rank-gold-bg: #67490a;
+  --rank-gold-ink: #ffe19a;
+  --rank-silver-bg: #4c5057;
+  --rank-silver-ink: #f0f2f5;
+  --rank-bronze-bg: #653b20;
+  --rank-bronze-ink: #ffd1a6;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+/* Every plain `text-link` (Tailwind's flat `color: var(--link)` utility)
+   gets this layered on top: a touch of weight so it reads as interactive
+   rather than just tinted text, an underline that's there but faded until
+   hover/focus (so the page isn't lined with underscores at rest), and a
+   darker/lighter shift on hover instead of the same flat blue doing
+   nothing. Same class name as the Tailwind utility, different layer  -
+   Tailwind's `color` utility still wins for color at rest; this only adds
+   the properties that utility doesn't touch. */
+.text-link {
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+.text-link:hover {
+  color: var(--link-hover);
+  text-decoration-color: currentColor;
+}
+.text-link:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.font-mono-arena {
+  font-family: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Small uppercase label that sits above every page's serif headline. */
+.eyebrow {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.btn-cta {
+  background: var(--cta);
+  color: var(--on-cta);
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+.btn-cta:hover {
+  opacity: 0.88;
+}
+
+.btn-secondary {
+  display: inline-block;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  background: var(--surface);
+}
+.btn-secondary:hover {
+  background: var(--elevated);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+/* Compact filter controls share one quiet, grey toolbar treatment across
+   arena pages. Keeping the label and selector together makes filtering read
+   as a single action rather than a collection of loose form fields. */
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.5rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.9rem;
+  box-shadow: none;
+}
+.filter-toolbar-single-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.filter-toolbar-single-row .filter-field {
+  display: block;
+  min-width: 0;
+}
+.filter-toolbar-single-row .filter-label {
+  display: block;
+  margin: 0 0 0.35rem;
+}
+.filter-toolbar-single-row .filter-select { min-width: 0; width: 100%; }
+.filter-toolbar-evaluate {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.filter-toolbar-evaluate .filter-field { min-width: 0; }
+.filter-toolbar-evaluate .filter-select,
+.filter-toolbar-evaluate .harness-filter,
+.filter-toolbar-evaluate .harness-filter summary { min-width: 0; width: 100%; }
+@media (max-width: 760px) {
+  .filter-toolbar-single-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-toolbar-evaluate { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Stack the label above its control: side by side there is no room for both
+     once a column is half a phone wide. */
+  .filter-toolbar-evaluate .filter-field { display: block; min-width: 0; }
+  .filter-toolbar-evaluate .filter-label { display: block; margin: 0 0 0.35rem; }
+  /* ChoiceDropdown and HarnessFilterDropdown carry their own Tailwind
+     min-w-40 / min-w-48 utilities, which hold them WIDER than the grid column
+     they sit in and push the whole toolbar into horizontal page overflow. On a
+     narrow viewport the column is the real constraint, so the utility has to
+     lose  -  this selector is two classes deep and beats it without
+     !important. */
+  .filter-toolbar .filter-field > * { min-width: 0; width: 100%; }
+}
+/* One column on a phone. Two columns of a 390px viewport leaves ~170px per
+   control, which is narrower than the shortest category name. */
+@media (max-width: 560px) {
+  .filter-toolbar-single-row,
+  .filter-toolbar-evaluate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.filter-label {
+  color: var(--ink-3);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Every plain <select> in the app: the browser's own native dropdown
+   arrow doesn't respect this app's own padding/rounding (it's drawn by
+   the OS/browser, not by us), so on a rounded pill or a tight input it
+   ends up crammed against the edge with no breathing room, and its exact
+   position/size varies by browser. `appearance: none` hides that native
+   arrow entirely and this draws a plain chevron instead, positioned with
+   real, consistent space from the right edge on every browser. Two
+   near-identical SVGs (light/dark) rather than one, since a data-URI
+   background-image can't read a CSS variable  -  each is hardcoded to that
+   theme's own --ink-3 so the arrow doesn't go invisible against its
+   background in either theme. */
+.filter-select,
+.select-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 0.8rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237d776f' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+}
+.dark .filter-select,
+.dark .select-field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a09a92' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+}
+.filter-select {
+  min-width: 8.75rem;
+  height: 2.55rem;
+  padding: 0 2.75rem 0 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1;
+  box-shadow: 0 1px 1px rgba(46, 43, 41, 0.04);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.filter-select:hover { background-color: var(--floating); border-color: var(--ink-3); }
+/* Shared by the app's other, non-pill <select>s (OnDemand model pickers,
+   Benchmark's profile picker)  -  same chevron treatment as .filter-select
+   above, in the plain rounded-rectangle shape those already use next to
+   their own text inputs. */
+.select-field {
+  padding-right: 2.5rem;
+}
+.filter-select:focus { outline: 2px solid var(--link); outline-offset: 2px; }
+.status-awaiting { color: var(--awaiting); }
+.harness-filter {
+  position: relative;
+}
+.harness-filter summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 10.5rem;
+  height: 2.55rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.875rem;
+  list-style: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.harness-filter summary::-webkit-details-marker { display: none; }
+.harness-filter summary:hover { background: var(--floating); border-color: var(--ink-3); }
+.harness-filter summary::after { content: '⌄'; margin-left: auto; color: var(--ink-3); font-size: 0.9rem; }
+.harness-filter[open] summary::after { transform: rotate(180deg); }
+.harness-filter-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  min-width: 14rem;
+  padding: 0.4rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.85rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-card), 0 12px 28px rgba(46, 43, 41, 0.14);
+}
+.harness-filter-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.55rem;
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  text-align: left;
+}
+.harness-filter-option:hover { background: var(--floating); color: var(--ink); }
+.harness-filter-option-active { background: var(--elevated); color: var(--ink); font-weight: 600; }
+
+/* Apply this only to cards that lead somewhere or represent a selectable
+   result. Static panels and dialogs deliberately stay still. */
+.card-hover {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: 0 3px 8px rgba(46, 43, 41, 0.08), 0 14px 28px rgba(46, 43, 41, 0.1);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3), 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-hover { transition: none; }
+  .card-hover:hover { transform: none; }
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.rank-gold { background: var(--rank-gold-bg); color: var(--rank-gold-ink); }
+.rank-silver { background: var(--rank-silver-bg); color: var(--rank-silver-ink); }
+.rank-bronze { background: var(--rank-bronze-bg); color: var(--rank-bronze-ink); }
+
+/* Leaderboard table rows for the top 3 ranks — the same gold/silver/bronze
+   wash as the podium cards above (--podium-gold/silver/bronze), so a rank's
+   color carries down into the table instead of stopping at the podium. A
+   plain background-color here (rather than a class-scoped :hover override)
+   is deliberate: Leaderboard.jsx's row keeps its ordinary `hover:bg-floating/80`
+   Tailwind class alongside this one, and that utility's `:hover` selector
+   is more specific than this single class, so hovering still lightens the
+   row exactly like every other row — no extra rule needed for that. */
+.leaderboard-row-gold { background: var(--podium-gold); }
+.leaderboard-row-silver { background: var(--podium-silver); }
+.leaderboard-row-bronze { background: var(--podium-bronze); }
+
+/* Filter pill row (All / Code / Research / …) */
+.pill {
+  border: 1px solid var(--line-strong);
+  background: var(--floating);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 13px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.pill:hover {
+  color: var(--ink);
+  background: var(--elevated);
+}
+.pill-active {
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--on-cta);
+}
+.pill-active:hover {
+  background: var(--cta);
+  color: var(--on-cta);
+}
+
+/* Tiny monospace tag used for categories and file types. */
+.tag {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  background: var(--elevated);
+  color: var(--ink-2);
+}
+
+/* Sidebar nav item */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.6rem;
+  color: var(--ink-2);
+  font-weight: 500;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nav-item:hover {
+  background: var(--floating);
+  color: var(--ink);
+}
+.nav-item-active {
+  background: var(--elevated);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Numbered 1-10 score button used on the judging screen. */
+.score-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--line-strong);
+  background: var(--floating);
+  color: var(--ink-2);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 12px;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.score-btn:hover:not(:disabled) {
+  background: var(--elevated);
+  color: var(--ink);
+}
+.score-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ===================================================================
+   Focus visibility  -  HA-VW-13
+   ===================================================================
+   Before this, exactly two selectors in the whole stylesheet drew a ring
+   (.text-link and .filter-select); everything else  -  artifact tabs, the ten
+   score buttons, the download link, Submit  -  fell back to the user agent's,
+   which the audit measured at 1.31:1 against the surrounding surface. That
+   fails WCAG 1.4.11 (non-text contrast) and 2.4.11 (focus appearance).
+   One token, applied through :where() so it adds ZERO specificity and any
+   component that wants its own ring still wins. --link is already this app's
+   ring color in the two places that had one, so no new value enters the
+   palette: 5.7:1 against --bg in light, 5.2:1 against --surface in dark. */
+:root {
+  --focus-ring: var(--link);
+}
+:where(button, a[href], [tabindex]:not([tabindex='-1']), summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Standard visually-hidden utility: present for assistive technology,
+   invisible on screen. Used for the viewer's live region and the
+   "File type:"/"File size:" prefixes that make terse metadata speakable. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===================================================================
+   Artifact viewer  -  HA-VW-02, 06, 07, 15
+   ===================================================================
+   Three ideas, in order of leverage:
+     1. Height comes from the VIEWPORT, not a constant. The audited build
+        used Tailwind's h-[30rem]  -  a hard 480px at every viewport, giving a
+        417px reading window for 8,969px of PDF: 4.65% visible, ~22
+        screenfuls per artifact.
+     2. ONE scroll context. The reading surface is the only scrollable
+        element in the artifact column, and overscroll-behavior stops the
+        wheel from silently handing off to the page.
+     3. Nothing centred with plain `align-items: center`, which pushes
+        overflow out of BOTH sides of a scroller while only the right side is
+        reachable (87px of every page unreachable at 1024px, 283px at 390px). */
+.ha-viewer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* clips the rounded corner only  -  never scrolls */
+  /* --ha-chrome accounts for the app header, the task heading block and the
+     tab row that sit above the viewer on the judging page. */
+  height: calc(100vh - var(--ha-chrome, 240px));
+  height: calc(100dvh - var(--ha-chrome, 240px));
+  min-height: 620px;
+}
+@media (max-width: 767px) {
+  /* A phone has no room for a 620px floor once the bottom sheet is docked. */
+  .ha-viewer {
+    height: max(62dvh, 420px);
+    min-height: 0;
+  }
+}
+.ha-viewer-fullscreen,
+.ha-viewer:fullscreen {
+  height: 100dvh;
+  min-height: 0;
+  border-radius: 0;
+}
+
+/* The one scroll context. Nothing inside it may set overflow.
+   `position: relative` is load-bearing, not decoration: it makes this the
+   offsetParent of the page boxes inside, so a page's offsetTop is measured in
+   the same coordinate space as this element's scrollTop. The page counter and
+   "go to page" both compare the two. */
+.ha-viewer-surface {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0; /* required, or a flex child refuses to shrink below content */
+  overflow: auto;
+  overscroll-behavior: auto;
+  scrollbar-gutter: stable;
+}
+.ha-viewer-surface:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* Safe centring. `safe center` behaves as `flex-start` the moment the content
+   is wider than the box, so overflow only ever escapes to the scrollable
+   side. min-width: fit-content stops the padding collapsing at the far edge.
+   The vendor-prefixed fallback is the plain value for engines that drop the
+   whole declaration on an unknown keyword. */
+.ha-page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  align-items: center;
+  align-items: safe center;
+  min-width: fit-content;
+}
+
+.ha-viewer-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--elevated);
+  border-bottom: 1px solid var(--line);
+}
+.ha-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.ha-tool:hover:not(:disabled) {
+  background: var(--floating);
+  color: var(--ink);
+}
+.ha-tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ha-tool-active {
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--on-cta);
+}
+.ha-tool-active:hover:not(:disabled) {
+  background: var(--cta);
+  color: var(--on-cta);
+}
+.ha-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ha-tool-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--line-strong);
+  margin: 0 2px;
+}
+.ha-tool-input {
+  width: 3.2rem;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  text-align: center;
+}
+.ha-tool-search {
+  width: 9rem;
+  text-align: left;
+}
+.ha-tool-count {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* Metadata strip. The audit flagged 10px text at 4.00:1 (HA-VW-14): this is
+   12px on --ink-2, which clears 4.5:1 in both themes. */
+.ha-viewer-meta {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* Truncation banner  -  HA-VW-01, the P0. Only ever rendered when the API's
+   own `truncated` flag is true, so a complete artifact looks exactly as it
+   does today. */
+.ha-banner {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* Artifact tab strip  -  HA-VW-15. Wrapping cost ~165px of vertical space
+   before the viewer even started (five stacked lines at 390px); this scrolls
+   on one line instead.
+   Used for three tab strips: FileViewer.jsx's per-file tabs, its per-sheet
+   SheetBody tabs, and WebPreview.jsx's Preview/Code toggle.
+
+   `overflow-x: auto` alone left extra tabs reachable (scroll/keyboard) but
+   fully undiscoverable  -  most browsers hide an inactive/overlay scrollbar
+   entirely, so a strip with more tabs than fit read as if those tabs simply
+   didn't exist (reported as sheets/files "getting hidden"). The rules below
+   make the scrollbar a permanent, themed, always-visible strip instead of
+   relying on a browser's own hover/overlay behavior to reveal it.
+   `scrollbar-color` is required alongside `scrollbar-width: thin` on
+   Firefox  -  width alone still renders the system-default (often
+   invisible-until-hover) color. `::-webkit-scrollbar` covers Chrome/Safari,
+   which ignore both standard properties entirely.
+
+   `align-items: center` matters more than it looks like it should: with no
+   align-items set, a text-only flex child (SheetBody's worksheet tabs -
+   no icon, just a label) collapsed to its padding alone (8px) instead of
+   its actual content height (~24.5px with the 11px label's line-height),
+   clipping almost the entire label under this strip's own overflow-y,
+   which an `overflow-x` alone forces to `auto` too. The active tab (dark
+   text on the light --cta fill) read as fully blank; inactive tabs (light
+   text on dark) kept just enough of a sliver to still look like something
+   was there, which is why this reached us as "the active sheet's name
+   disappeared" rather than "every tab is clipped". FileTabs' icon square
+   masked the same collapse there since it was already tall enough on its
+   own - centering here is the fix for all three consumers, not a
+   per-consumer workaround. */
+.ha-artifact-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  padding-bottom: 4px;
+}
+.ha-artifact-tabs > * {
+  flex: 0 0 auto;
+}
+.ha-artifact-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+.ha-artifact-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ha-artifact-tabs::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+
+/* Plain-text artifacts  -  HA-VW-16. `white-space: pre` with no escape forced
+   296px of horizontal scrolling per line at 390px, failing 1.4.10 Reflow.
+   Wrapping is the default; the toggle restores `pre` for column-aligned
+   files where wrapping destroys the layout. */
+.ha-code {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  tab-size: 4;
+}
+.ha-code-row {
+  display: flex;
+  gap: 12px;
+}
+.ha-code-num {
+  flex: 0 0 auto;
+  min-width: 3.5ch;
+  text-align: right;
+  color: var(--ink-3);
+  user-select: none;
+}
+.ha-code-line {
+  white-space: pre;
+  min-width: 0;
+}
+.ha-code-wrapped .ha-code-line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Skeleton  -  HA-VW-09. Mirrors the page shape so nothing jumps when the
+   real render lands. */
+.ha-skeleton-page {
+  width: min(100%, 620px);
+  padding: 26px 30px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.ha-skeleton-line {
+  height: 9px;
+  margin-bottom: 11px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--elevated) 25%, var(--floating) 37%, var(--elevated) 63%);
+  background-size: 400% 100%;
+  animation: ha-shimmer 1.4s ease-in-out infinite;
+}
+.ha-skeleton-title {
+  height: 15px;
+  width: 55%;
+  margin-bottom: 20px;
+}
+@keyframes ha-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ha-skeleton-line {
+    animation: none;
+  }
+}
+
+/* Confetti burst  -  see components/Confetti.jsx, fired once when THIS
+   viewer's own score submission is what revealed a comparison (not on
+   every page load of an already-revealed task). Each piece falls from
+   just above the viewport to just below it, with a per-piece random
+   horizontal drift and spin set as inline custom properties
+   (--confetti-drift/--confetti-rotate) rather than baked into the
+   keyframes, so one shared @keyframes rule still produces varied motion. */
+.confetti-piece {
+  position: absolute;
+  top: -24px;
+  border-radius: 1px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.35, 0, 0.65, 1);
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--confetti-drift, 0), 110vh, 0) rotate(var(--confetti-rotate, 360deg));
+    opacity: 0.85;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    display: none;
+  }
+}
+
+/* ===================================================================
+   pdf.js text layer  -  HA-VW-04
+   ===================================================================
+   The audited build rendered PDFs to bare <canvas>, so the viewer exposed
+   zero selectable characters: no selection, no copy into a score
+   justification, no browser find, nothing for a screen reader, and every
+   hyperlink in the document was inert pixels.
+   These rules are the text-layer geometry from pdfjs-dist's own
+   web/pdf_viewer.css (Apache-2.0), flattened out of its nested syntax and
+   scoped to this app rather than importing the whole 60KB viewer
+   stylesheet  -  which also carries .toolbar/.pdfViewer chrome rules this
+   app has no use for. pdf.js positions each span itself via inline
+   left/top/--font-height/--scale-x/--rotate; these rules are what turn
+   those into a selectable overlay aligned with the canvas underneath.
+   Keep in sync with pdfjs-dist on upgrade. */
+.ha-pdf-page {
+  position: relative;
+  flex: 0 0 auto;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.12);
+  /* setLayerDimensions() sizes the text layer with
+     round(down, var(--total-scale-factor) * Npx, var(--scale-round-x)), so
+     both must be defined on an ancestor or the layer collapses to zero. */
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+}
+.ha-pdf-page canvas {
+  display: block;
+}
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  z-index: 0;
+  opacity: 1;
+  line-height: 1;
+  text-align: initial;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.textLayer .markedContent {
+  display: contents;
+}
+.textLayer span[role='img'] {
+  user-select: none;
+  cursor: default;
+}
+/* In-document find. The spans are transparent text over the canvas, so a
+   match is shown by tinting the span's own box rather than its glyphs. */
+.textLayer mark {
+  color: transparent;
+  background: rgba(180, 0, 170, 0.32);
+  border-radius: 2px;
+}
+.textLayer mark.ha-match-current {
+  background: rgba(255, 190, 0, 0.55);
+  box-shadow: 0 0 0 1px rgba(120, 80, 0, 0.6);
+}
+
+/* ===================================================================
+   Sticky scoring pane  -  HA-VW-11
+   ===================================================================
+   The score row used to sit 156px BELOW the viewer with nothing on the page
+   position: sticky, so reaching the scores cost 408px of page scroll at
+   1440x900 and 799px at 390x844  -  and the artifact scrolled out of sight
+   the moment the judge moved for any other reason. Reading and scoring
+   should never compete for the same screen. */
+.ha-eval-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .ha-eval-split {
+    grid-template-columns: minmax(0, 65fr) minmax(320px, 35fr);
+  }
+  /* A website entry has no left-column file viewer (WebPreview above
+     already shows the code) — let the scoring pane take the full width
+     instead of sitting in a 35% column beside empty space. */
+  .ha-eval-split--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ha-score-pane {
+  position: sticky;
+  top: 12px;
+  max-height: none;
+  overflow: visible;
+}
+.ha-score-pane-static {
+  position: static;
+}
+/* Below the split breakpoint the pane becomes a docked bottom sheet: the
+   scores and Submit stay under the judge's thumb instead of 799px down the
+   page, and the artifact above it stays partly visible. */
+@media (max-width: 1023px) {
+  .ha-score-pane {
+    position: fixed;
+    inset: auto 0 0 0;
+    top: auto;
+    z-index: 40;
+    max-height: 78dvh;
+    overflow: auto;
+    overscroll-behavior: auto;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -6px 24px rgba(16, 16, 16, 0.18);
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+  .ha-score-pane-static {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0.75rem;
+    box-shadow: none;
+    padding-bottom: 0;
+  }
+  .ha-score-pane-collapsed {
+    max-height: none;
+    overflow: visible;
+  }
+  /* Keeps the last of the page reachable above the docked sheet. */
+  .ha-sheet-spacer {
+    height: 132px;
+  }
+}
+.ha-sheet-handle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+}
+.ha-sheet-handle::before {
+  content: '';
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+/* MUST stay after the .ha-sheet-handle rules above. The drag handle and the
+   spacer only exist for the docked bottom sheet; on a desktop the pane is a
+   sticky column and there is nothing to collapse, so a "Hide scoring" control
+   there does nothing but confuse. Both are single-class selectors, so this
+   loses to `display: flex` if it is declared any earlier in the file — which
+   is exactly the bug that shipped the handle onto laptop screens. */
+@media (min-width: 1024px) {
+  .ha-sheet-handle,
+  .ha-sheet-spacer {
+    display: none;
+  }
+}
+
+/* Web-preview Code view  -  file explorer beside the source pane. Collapses
+   to a stacked layout on narrow screens so the tree never squeezes the code
+   below a readable width. */
+.ha-web-code {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .ha-web-code {
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  }
+  .ha-web-tree {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+}
+.ha-web-tree {
+  border-bottom: 1px solid var(--line);
+  max-height: 640px;
+  overflow: auto;
+}
+.ha-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding-right: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  text-align: left;
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.ha-tree-row:hover {
+  background: var(--elevated);
+  color: var(--ink);
+}
+.ha-tree-row-active {
+  background: var(--elevated);
+  color: var(--ink);
+  font-weight: 600;
+}

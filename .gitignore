@@ -1,0 +1,19 @@
+# Node/Vite dependencies and generated bundles.
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files (keep checked-in examples only).
+.env
+.env.*
+!.env.example
+
+# Editors, OS metadata.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
