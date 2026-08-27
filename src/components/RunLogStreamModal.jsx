@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api.js'
+import { HarnessAvatar } from './ui.jsx'
 
 const TERMINAL_STATUSES = new Set(['done', 'error', 'stopped'])
 const POLL_INTERVAL_MS = 1500
@@ -61,7 +62,7 @@ function pollRunLog(runId, onUpdate, onError, intervalMs = POLL_INTERVAL_MS) {
   }
 }
 
-export default function RunLogStreamModal({ runId, harnessName, onClose }) {
+export default function RunLogStreamModal({ runId, harnessKey, harnessName, onClose }) {
   const [stream, setStream] = useState({
     status: 'pending',
     raw_log: '',
@@ -110,12 +111,18 @@ export default function RunLogStreamModal({ runId, harnessName, onClose }) {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="eyebrow">Run logs</p>
-              <h2 id="run-log-title" className="mt-1 truncate font-display text-xl font-semibold">{harnessName}</h2>
+              <div className="mt-1 flex items-center gap-2.5">
+                <HarnessAvatar harnessKey={harnessKey} name={harnessName} size={30} />
+                <h2 id="run-log-title" className="truncate font-display text-xl font-semibold">{harnessName}</h2>
+              </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <span className={`font-mono-arena uppercase tracking-wider ${statusClass(stream.status)}`}>{statusLabel(stream.status)}</span>
                 {live && connected && (
-                  <span className="font-mono-arena uppercase tracking-wider text-ink-3">
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-warn" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good/10 px-2 py-0.5 font-mono-arena text-[9px] font-bold uppercase tracking-[0.14em] text-good shadow-sm">
+                    <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-good opacity-70" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-good" />
+                    </span>
                     Live
                   </span>
                 )}
