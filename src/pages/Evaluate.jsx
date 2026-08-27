@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, getUserToken } from '../api.js'
@@ -6,12 +6,11 @@ import { useAuth } from '../auth.jsx'
 import AuthModal from '../components/AuthModal.jsx'
 import ChoiceDropdown from '../components/ChoiceDropdown.jsx'
 import JudgeRunPickerModal from '../components/JudgeRunPickerModal.jsx'
-import RevalidatingBadge from '../components/RevalidatingBadge.jsx'
 import ModelPickerModal from '../components/ModelPickerModal.jsx'
 import TaskPromptModal from '../components/TaskPromptModal.jsx'
-import { invalidateCache, readCache, writeCache } from '../lib/pageCache.js'
 import { IconBrowser } from '../components/icons.jsx'
 import { isWebProjectTask } from '../lib/webProject.js'
+import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 import {
   EmptyState,
   FileTypeChips,
@@ -398,21 +397,31 @@ function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, h
   )
 }
 
-// Module-scoped  -  survives navigating away and back within the same SPA
-// session (see lib/pageCache.js). Keyed by everything that changes which
-// tasks/overview belong on screen, so switching filters never shows a
-// different filter's stale data for even a frame.
-const tasksCacheKey = (category, group, isAdmin) => `evaluate:tasks:${category}:${group}:${isAdmin}`
-// Also keyed by viewer id: the overview embeds this specific viewer's own
-// "already scored"/revealed state (via compare()), which a different
-// signed-in user  -  or signing out  -  must never see a stale glimpse of
-// from whoever used this tab before. The plain task list above carries no
-// such per-viewer data, so it doesn't need this.
-const overviewCacheKey = (category, group, isAdmin, userId) =>
-  `evaluate:overview:${category}:${group}:${isAdmin}:${userId ?? 'anon'}`
-
 const STATS_REFRESH_MS = 30_000
 const TASKS_PER_PAGE = 6
+
+function overviewFromRows(rows) {
+  const runsByTask = {}
+  const historyByTask = {}
+  const judgedTaskIds = []
+  for (const row of rows) {
+    runsByTask[row.task_id] = row.runs
+    historyByTask[row.task_id] = row.history
+    if (row.compare?.revealed) judgedTaskIds.push(row.task_id)
+  }
+  return { runsByTask, historyByTask, judgedTaskIds }
+}
+
+function buildEvaluatePageData(tasks, overviewRows) {
+  const { runsByTask, historyByTask, judgedTaskIds } = overviewFromRows(overviewRows)
+  return {
+    tasks,
+    hasMoreTasks: tasks.length === TASKS_PER_PAGE,
+    runsByTask,
+    historyByTask,
+    judgedTaskIds,
+  }
+}
 
 export default function Evaluate({ group, onGroupChange }) {
   const { user, isAdminMode } = useAuth()
@@ -421,23 +430,16 @@ export default function Evaluate({ group, onGroupChange }) {
   // `category` itself always starts at '' (its own useState below)  -  safe
   // to use that literal here rather than reordering declarations just to
   // read it a few lines early.
-  const [tasks, setTasks] = useState(() => readCache(tasksCacheKey('', group, isAdmin)) ?? [])
-  const [tasksLoading, setTasksLoading] = useState(() => readCache(tasksCacheKey('', group, isAdmin)) === undefined)
+  const [tasks, setTasks] = useState([])
+  const [hasMoreTasks, setHasMoreTasks] = useState(false)
   const [categories, setCategories] = useState([])
   const [groups, setGroups] = useState([])
   const [category, setCategory] = useState('')
   const [harnesses, setHarnesses] = useState([])
   const [selected, setSelected] = useState([])
-  const cachedOverview = readCache(overviewCacheKey('', group, isAdmin, user?.id))
-  const [runsByTask, setRunsByTask] = useState(() => cachedOverview?.runsByTask ?? {})
-  const [historyByTask, setHistoryByTask] = useState(() => cachedOverview?.historyByTask ?? {})
-  const [judgedTasks, setJudgedTasks] = useState(() => new Set(cachedOverview?.judgedTaskIds ?? []))
-  // True while a cache hit is being silently refreshed in the background  -
-  // see RevalidatingBadge. Two independent sources (the task list, and the
-  // runs/judged overview) each toggle their own half; shown as one badge.
-  const [tasksRevalidating, setTasksRevalidating] = useState(false)
-  const [overviewRevalidating, setOverviewRevalidating] = useState(false)
-  const revalidating = tasksRevalidating || overviewRevalidating
+  const [runsByTask, setRunsByTask] = useState({})
+  const [historyByTask, setHistoryByTask] = useState({})
+  const [judgedTasks, setJudgedTasks] = useState(() => new Set())
   const [stats, setStats] = useState(null)
   const [busyTask, setBusyTask] = useState(null)
   const [error, setError] = useState('')
@@ -495,37 +497,61 @@ export default function Evaluate({ group, onGroupChange }) {
     return () => window.clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const cached = readCache(tasksCacheKey(category, group, isAdmin))
-    if (cached !== undefined) {
-      setTasksRevalidating(true)
-    } else {
-      setTasksLoading(true)
-    }
-    api
-      .listTasks({ category: category || undefined, group: group || undefined, includeDeleted: isAdmin })
-      .then((list) => {
-        writeCache(tasksCacheKey(category, group, isAdmin), list)
-        setTasks(list)
+  const applyEvaluatePage = useCallback((pageData) => {
+    setTasks(pageData.tasks)
+    setHasMoreTasks(pageData.hasMoreTasks)
+    setRunsByTask(pageData.runsByTask)
+    setHistoryByTask(pageData.historyByTask)
+    setJudgedTasks(new Set(pageData.judgedTaskIds))
+  }, [])
+
+  const fetchEvaluatePage = useCallback(
+    async (pageNum) => {
+      const result = await api.listTasks({
+        category: category || undefined,
+        group: group || undefined,
+        includeDeleted: isAdmin,
+        page: pageNum,
+        limit: TASKS_PER_PAGE,
       })
-      .catch((e) => setError(e.message))
-      .finally(() => {
-        setTasksRevalidating(false)
-        setTasksLoading(false)
-      })
-  }, [category, group, isAdmin])
+      const list = Array.isArray(result) ? result : result.items ?? result.tasks ?? []
+      return list.length
+        ? buildEvaluatePageData(list, await api.runsOverview(list.map((t) => t.id_aa)))
+        : { tasks: [], hasMoreTasks: false, runsByTask: {}, historyByTask: {}, judgedTaskIds: [] }
+    },
+    [category, group, isAdmin]
+  )
+
+  const evaluateScopeKey = useMemo(
+    () => `${category}:${group}:${isAdmin}`,
+    [category, group, isAdmin]
+  )
+
+  const hasNextEvaluatePage = useCallback((_pageNum, data) => data.hasMoreTasks, [])
+
+  const reportFetchError = useCallback((error) => {
+    setError(error?.message ?? 'Failed to load tasks')
+  }, [])
+
+  const { loading: tasksLoading, refreshCurrentPage: refreshEvaluatePage } = useAdjacentPagePrefetch({
+    page,
+    scopeKey: evaluateScopeKey,
+    fetchPage: fetchEvaluatePage,
+    applyPage: applyEvaluatePage,
+    hasNextPage: hasNextEvaluatePage,
+    onError: reportFetchError,
+  })
+
+  const reloadEvaluatePage = useCallback(async () => {
+    const pageData = await refreshEvaluatePage()
+    return pageData
+  }, [refreshEvaluatePage])
 
   const refreshTask = useCallback(async (taskId) => {
     const [runs, history] = await Promise.all([
       api.listRunsForTask(taskId),
       api.listRunHistoryForTask(taskId).catch(() => []),
     ])
-    // compare()'s "has THIS user judged this?" check is scoped to one
-    // specific provider_config_id  -  a score is stored under the profile it
-    // was actually submitted for. Calling it with none at all doesn't mean
-    // "any profile", it means "only scores with no profile," which almost
-    // never matches a real one. Pass the same profile buildRows/this page
-    // itself treats as "the" comparison (its best-available done run's).
     const providerConfigId = resolveEverDoneProviderConfigId(runs, history)
     const cmp = await api.compare(taskId, providerConfigId)
     setRunsByTask((prev) => ({ ...prev, [taskId]: runs }))
@@ -549,60 +575,14 @@ export default function Evaluate({ group, onGroupChange }) {
   // N+1 pattern this fixes, and both need to reflect one task's fresh
   // state right away rather than waiting on a full-list refetch.
   // Shared by the initial bulk load below AND the in-flight poll further
-  // down  -  both just need "apply these overview rows to state (and mirror
-  // the result into the cache)", not two copies of the same merge logic.
-  const applyOverviewRows = useCallback(
-    (rows) => {
-      const runsUpdate = {}
-      const historyUpdate = {}
-      const judgedAdd = []
-      const judgedRemove = []
-      for (const row of rows) {
-        runsUpdate[row.task_id] = row.runs
-        historyUpdate[row.task_id] = row.history
-        if (row.compare?.revealed) judgedAdd.push(row.task_id)
-        else judgedRemove.push(row.task_id)
-      }
-      // Captured from inside each updater (guaranteed to run synchronously
-      // as part of the setState call) so the cache mirrors exactly what
-      // gets rendered, without needing runsByTask/historyByTask/
-      // judgedTasks as a dependency (that would re-run the caller on
-      // every write it itself makes).
-      let mergedRuns, mergedHistory, mergedJudged
-      setRunsByTask((prev) => (mergedRuns = { ...prev, ...runsUpdate }))
-      setHistoryByTask((prev) => (mergedHistory = { ...prev, ...historyUpdate }))
-      setJudgedTasks((prev) => {
-        const next = new Set(prev)
-        judgedAdd.forEach((id) => next.add(id))
-        judgedRemove.forEach((id) => next.delete(id))
-        mergedJudged = next
-        return next
-      })
-      writeCache(overviewCacheKey(category, group, isAdmin, user?.id), {
-        runsByTask: mergedRuns,
-        historyByTask: mergedHistory,
-        judgedTaskIds: [...mergedJudged],
-      })
-    },
-    [category, group, isAdmin, user?.id]
-  )
-
-  useEffect(() => {
-    let cancelled = false
-    if (readCache(overviewCacheKey(category, group, isAdmin, user?.id)) !== undefined) setOverviewRevalidating(true)
-    api
-      .runsOverview(tasks.map((t) => t.id_aa))
-      .then((rows) => {
-        if (!cancelled) applyOverviewRows(rows)
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setOverviewRevalidating(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [tasks, applyOverviewRows, category, group, isAdmin, user?.id])
+  // down  -  both just need "apply these overview rows to state", not two
+  // copies of the same merge logic.
+  const applyOverviewRows = useCallback((rows) => {
+    const { runsByTask: nextRuns, historyByTask: nextHistory, judgedTaskIds } = overviewFromRows(rows)
+    setRunsByTask(nextRuns)
+    setHistoryByTask(nextHistory)
+    setJudgedTasks(new Set(judgedTaskIds))
+  }, [])
 
   // Poll only while something is actually in flight, and not so often that
   // a page full of tasks turns into a request storm. This used to call
@@ -671,7 +651,6 @@ export default function Evaluate({ group, onGroupChange }) {
     setNoticeByTask((prev) => ({ ...prev, [taskId]: '' }))
     try {
       await api.triggerRun(taskId, runnableSelection, force, profileId ?? null)
-      invalidateCache('battleLog:rows:')
       api.stats().then(setStats).catch(() => {})
       navigate('/battles', { state: { submittedTaskId: taskId } })
     } catch (err) {
@@ -716,15 +695,7 @@ export default function Evaluate({ group, onGroupChange }) {
     if (!window.confirm(`Delete every run, deliverable, score, and AI judge verdict for “${task.title}”? This cannot be undone.`)) return
     try {
       await api.deleteTaskResults(task.id_aa)
-      setRunsByTask((prev) => ({ ...prev, [task.id_aa]: [] }))
-      setJudgedTasks((prev) => {
-        const next = new Set(prev)
-        next.delete(task.id_aa)
-        return next
-      })
-      const [freshTasks, freshStats] = await Promise.all([api.listTasks({ category: category || undefined, group: group || undefined, includeDeleted: isAdmin }), api.stats()])
-      setTasks(freshTasks)
-      setStats(freshStats)
+      await Promise.all([reloadEvaluatePage(), api.stats().then(setStats)])
     } catch (err) {
       setError(err.message)
     }
@@ -734,9 +705,7 @@ export default function Evaluate({ group, onGroupChange }) {
     if (!window.confirm(`Delete “${task.title}” and all of its runs, deliverables, scores, and AI judge data? This cannot be undone.`)) return
     try {
       await api.deleteTask(task.id_aa)
-      const [freshTasks, freshStats] = await Promise.all([api.listTasks({ category: category || undefined, group: group || undefined, includeDeleted: isAdmin }), api.stats()])
-      setTasks(freshTasks)
-      setStats(freshStats)
+      await Promise.all([reloadEvaluatePage(), api.stats().then(setStats)])
     } catch (err) {
       setError(err.message)
     }
@@ -745,9 +714,7 @@ export default function Evaluate({ group, onGroupChange }) {
   async function restore(task) {
     try {
       await api.restoreTask(task.id_aa)
-      const [freshTasks, freshStats] = await Promise.all([api.listTasks({ category: category || undefined, group: group || undefined, includeDeleted: isAdmin }), api.stats()])
-      setTasks(freshTasks)
-      setStats(freshStats)
+      await Promise.all([reloadEvaluatePage(), api.stats().then(setStats)])
       await refreshTask(task.id_aa)
     } catch (err) {
       setError(err.message)
@@ -771,18 +738,16 @@ export default function Evaluate({ group, onGroupChange }) {
   useEffect(() => {
     setPage(1)
   }, [group, category, selected])
-  const pageCount = Math.max(1, Math.ceil(visibleTasks.length / TASKS_PER_PAGE))
-  useEffect(() => {
-    setPage((p) => Math.min(p, pageCount))
-  }, [pageCount])
-  const pageTasks = visibleTasks.slice((page - 1) * TASKS_PER_PAGE, page * TASKS_PER_PAGE)
+
+  const pageTasks = visibleTasks
+  const pageCount = hasMoreTasks ? page + 1 : Math.max(1, page)
+  const showPagination = page > 1 || hasMoreTasks
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Evaluation engine"
         title="Agents doing the work. You judge it."
-        aside={<RevalidatingBadge show={revalidating} />}
       >
         <p>
           Tasks come from datasets uploaded to this arena - whether created in Artificial Analysis or built from your own
@@ -869,7 +834,7 @@ export default function Evaluate({ group, onGroupChange }) {
           ))}
       </div>
       )}
-      {!tasksLoading && visibleTasks.length > 0 && (
+      {!tasksLoading && showPagination && (
         <Pagination page={page} pageCount={pageCount} onChange={setPage} />
       )}
 

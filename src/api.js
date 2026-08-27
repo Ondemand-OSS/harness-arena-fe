@@ -1,4 +1,4 @@
-// API base URL. Leave unset for local development.
+// API base URL. Leave unset for local development. 
 const API_BASE = import.meta.env.VITE_API_BASE?.replace(/\/$/, '') ?? ''
 
 // Remove legacy client-side session data.
@@ -137,11 +137,13 @@ async function requestText(path, retryAfterRefresh = true) {
 }
 
 export const api = {
-  listTasks: ({ category, group, includeDeleted = false } = {}) => {
+  listTasks: ({ category, group, includeDeleted = false, page, limit } = {}) => {
     const qs = new URLSearchParams()
     if (category) qs.set('category', category)
     if (group) qs.set('group', group)
     if (includeDeleted) qs.set('include_deleted', 'true')
+    if (page != null) qs.set('page', page)
+    if (limit != null) qs.set('limit', limit)
     const suffix = qs.toString()
     return request('GET', `/api/tasks${suffix ? `?${suffix}` : ''}`)
   },
@@ -256,7 +258,22 @@ export const api = {
     ),
   // Bulk task run summary.
   runsOverview: (taskIds) => request('POST', '/api/runs/overview', { task_ids: taskIds }),
+  // Combined task list + run overview with server-side filters and pagination.
+  runsBoard: ({ category, group, includeDeleted = false, status, outcome, sort = 'desc', page = 1, limit = 6 } = {}) => {
+    const qs = new URLSearchParams()
+    if (category) qs.set('category', category)
+    if (group) qs.set('group', group)
+    if (includeDeleted) qs.set('include_deleted', 'true')
+    if (status) qs.set('status', status)
+    if (outcome) qs.set('outcome', outcome)
+    if (sort) qs.set('sort', sort)
+    if (page != null) qs.set('page', page)
+    if (limit != null) qs.set('limit', limit)
+    const suffix = qs.toString()
+    return request('GET', `/api/runs/board${suffix ? `?${suffix}` : ''}`)
+  },
   getRun: (id) => request('GET', `/api/runs/${id}`),
+  runLog: (runId) => request('GET', `/api/runs/${runId}/logs`),
   // Retry a failed run.
   retryRun: (runId) => request('POST', `/api/runs/${runId}/retry`),
   stopRun: (runId) => request('POST', `/api/runs/${runId}/stop`),

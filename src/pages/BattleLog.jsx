@@ -16,11 +16,11 @@ import {
   Tag,
   identityColor,
 } from '../components/ui.jsx'
-import { IconBrowser, IconChevron } from '../components/icons.jsx'
+import { IconBrowser, IconChevron, IconCode } from '../components/icons.jsx'
 import ChoiceDropdown from '../components/ChoiceDropdown.jsx'
-import RevalidatingBadge from '../components/RevalidatingBadge.jsx'
-import { readCache, writeCache } from '../lib/pageCache.js'
+import RunLogStreamModal from '../components/RunLogStreamModal.jsx'
 import { isWebProjectTask } from '../lib/webProject.js'
+import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 
 const STATUS_FILTERS = ['Queued', 'In progress', 'Partially failed', 'Failed', 'Insufficient results to judge', 'Judged', 'Awaiting your judgement', 'Awaiting community & your judgement']
 const OUTCOME_FILTERS = ['Decisive', 'Tie']
@@ -728,6 +728,7 @@ const STATUS_TONE = {
  *  round had no chevron at all and the only way "in" was the task title
  *  link, straight to the judge page with nothing done yet to show. */
 function InProgressRuns({ entries, onStop, busyRunIds, isAdmin }) {
+  const [viewingRun, setViewingRun] = useState(null)
   if (!entries.length) return null
   const hasRetrying = entries.some((entry) => entry.retrying)
   const hasRunning = entries.some((entry) => entry.status === 'running')
@@ -738,19 +739,38 @@ function InProgressRuns({ entries, onStop, busyRunIds, isAdmin }) {
       </p>
       <div className="mt-2 space-y-1.5">
         {entries.map((e) => (
-          <div key={e.run_id} className="flex flex-wrap items-center gap-2 text-xs">
+          <div key={e.run_id} className="flex items-center gap-2 text-xs">
             <HarnessAvatar harnessKey={e.harness_key} name={e.harness_name} size={16} />
             <span className="shrink-0">{e.harness_name}</span>
             <ModelBadge model={e.model} />
             <span className={e.status === 'pending' ? 'text-ink-3' : 'text-warn'}>{e.status === 'pending' ? 'Queued' : 'Running'}</span>
-            {isAdmin && e.can_stop && (
-              <button type="button" className="shrink-0 text-bad hover:underline disabled:opacity-50" disabled={busyRunIds.has(e.run_id)} onClick={() => onStop(e.run_id)}>
-                {busyRunIds.has(e.run_id) ? 'Stopping…' : 'Stop'}
-              </button>
-            )}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              {e.status === 'running' && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-line bg-floating px-2.5 py-0.5 font-mono-arena text-[10px] font-medium uppercase tracking-wider text-ink-2 transition-colors hover:border-warn/40 hover:bg-warn/10 hover:text-warn"
+                  onClick={() => setViewingRun(e)}
+                >
+                  <IconCode className="text-[10px]" aria-hidden="true" />
+                  Logs
+                </button>
+              )}
+              {isAdmin && e.can_stop && (
+                <button type="button" className="shrink-0 text-bad hover:underline disabled:opacity-50" disabled={busyRunIds.has(e.run_id)} onClick={() => onStop(e.run_id)}>
+                  {busyRunIds.has(e.run_id) ? 'Stopping…' : 'Stop'}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+      {viewingRun && (
+        <RunLogStreamModal
+          runId={viewingRun.run_id}
+          harnessName={viewingRun.harness_name}
+          onClose={() => setViewingRun(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1238,93 +1258,148 @@ function BattleRow({ row, onRetry, onStop, onDeleteFailedRun, onDeleteRound, bus
   )
 }
 
-// Keyed by isAdmin (admin/non-admin see a different is_deleted scope  -  see
-// loadRows' includeDeleted) AND by viewer id: each row embeds this specific
-// viewer's own "already scored"/revealed state (via compare()), which a
-// different signed-in user  -  or signing out  -  must never see a stale
-// glimpse of from whoever used this tab before. Module-scoped  -  see
-// lib/pageCache.js for why this survives navigating away and back within
-// the same SPA session.
-// Versioned so deployments do not resurrect an older snapshot whose rows
-// were built with the former duplicate-card behaviour.
-const rowsCacheKey = (isAdmin, userId) => `battleLog:rows:v2:${isAdmin}:${userId ?? 'anon'}`
+/** Map a `/api/runs/board` row into the shape BattleRow expects. */
+function mapBoardEntry(entry) {
+  return {
+    ...entry,
+    run_id: entry.run_id ?? entry.id,
+    score: entry.already_scored ?? entry.score,
+    harness_name: entry.harness_name ?? entry.label,
+    deliverables_done: entry.deliverables_done ?? entry.deliverables?.length ?? 0,
+    deliverables_expected: entry.deliverables_expected ?? 0,
+  }
+}
+
+function mapBoardProgressEntry(entry) {
+  return {
+    run_id: entry.run_id ?? entry.id,
+    round_id: entry.round_id,
+    harness_key: entry.harness_key,
+    harness_name: entry.harness_name ?? entry.harness_key,
+    model: entry.model,
+    done: entry.deliverables_done ?? entry.done ?? 0,
+    expected: entry.deliverables_expected ?? entry.expected ?? 0,
+    status: entry.status,
+    retrying: Boolean(entry.is_retrying ?? entry.retrying),
+    can_stop: Boolean(entry.can_stop),
+    submitted_by: entry.submitted_by,
+  }
+}
+
+function mapBoardFailedEntry(entry) {
+  return {
+    run_id: entry.run_id ?? entry.id,
+    round_id: entry.round_id,
+    harness_key: entry.harness_key,
+    harness_name: entry.harness_name ?? entry.harness_key,
+    model: entry.model,
+    status: entry.status,
+    error_message: entry.error_message || (entry.status === 'stopped' ? 'Run stopped.' : ''),
+    can_retry: Boolean(entry.can_retry),
+    submitted_by: entry.submitted_by,
+  }
+}
+
+function mapBoardRow(apiRow) {
+  const entries = (apiRow.entries ?? []).map(mapBoardEntry)
+  const judged = entries.some((entry) => entry.score != null)
+  const progressEntries = (apiRow.progress_entries ?? []).map(mapBoardProgressEntry)
+  const failedEntries = (apiRow.failed_entries ?? []).map(mapBoardFailedEntry)
+  const inFlight =
+    progressEntries.length > 0 || ['In progress', 'Queued', 'Retrying failed runs'].includes(apiRow.status)
+  const hideDeliverableCounts =
+    !judged && (inFlight || new Set(entries.map((entry) => entry.deliverables_done)).size > 1)
+  const displayEntries = judged
+    ? [...entries].filter((entry) => entry.score != null).sort((a, b) => b.score - a.score)
+    : entries
+  return {
+    task: apiRow.task,
+    rowKey: apiRow.row_key,
+    status: apiRow.status,
+    outcome: apiRow.outcome,
+    margin: apiRow.margin ?? 0,
+    entries: displayEntries,
+    progressEntries,
+    failedEntries,
+    pastAttempts: apiRow.past_attempts ?? [],
+    doneCount: entries.length,
+    inFlight,
+    retrying: apiRow.status === 'Retrying failed runs',
+    isPrimaryCard: apiRow.is_primary_card,
+    providerConfigId: entries[0]?.provider_config_id ?? progressEntries[0]?.provider_config_id ?? null,
+    latestRunAt: apiRow.latest_run_at ? new Date(apiRow.latest_run_at).getTime() : 0,
+    hideDeliverableCounts,
+    generatedDeliverables: entries.reduce((sum, entry) => sum + (entry.deliverables_done ?? 0), 0),
+    expectedDeliverables: entries.reduce((sum, entry) => sum + (entry.deliverables_expected ?? 0), 0),
+  }
+}
 
 export default function BattleLog() {
   const { user } = useAuth()
   const isAdmin = Boolean(user?.is_admin)
-  const cachedRows = readCache(rowsCacheKey(isAdmin, user?.id))
-  const [rows, setRows] = useState(() => cachedRows ?? [])
   const [category, setCategory] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [outcome, setOutcome] = useState('')
   const [runOrder, setRunOrder] = useState('desc')
   const [page, setPage] = useState(1)
-  // Only the true first-ever visit this session shows a loading state  -
-  // coming back to a page already fetched once shows what's cached
-  // immediately and refreshes it silently (see the loadRows effect below).
-  const [loading, setLoading] = useState(() => cachedRows === undefined)
-  // True only for the "showing a cache hit while it silently refreshes"
-  // window  -  see RevalidatingBadge. Never true on a genuine first load
-  // (that's `loading` instead), so the two never show at once.
-  const [revalidating, setRevalidating] = useState(false)
+  const [rows, setRows] = useState([])
+  const [total, setTotal] = useState(0)
+  const [categories, setCategories] = useState([])
   const [busyRunIds, setBusyRunIds] = useState(() => new Set())
   const [error, setError] = useState('')
   const [insufficientResults, setInsufficientResults] = useState(false)
 
-  const loadRows = useCallback(async () => {
-    const [tasks, harnesses] = await Promise.all([
-      api.listTasks({ includeDeleted: isAdmin }),
-      api.listHarnesses().catch(() => []),
-    ])
-    const harnessesByKey = Object.fromEntries(harnesses.map((h) => [h.key, h]))
-    // One request for every task's runs+history+compare instead of up to
-    // three requests PER task  -  a page with 50 tasks used to fire ~150
-    // requests just to render. A deleted task's own runs are already
-    // soft-deleted alongside it (see tasks.py's delete_task), so this
-    // naturally comes back empty for them too  -  no need to special-case
-    // is_deleted here any more than the backend does.
-    const overviewByTask = Object.fromEntries(
-      (await api.runsOverview(tasks.map((t) => t.id_aa))).map((row) => [row.task_id, row])
-    )
-    const rowArrays = tasks.map((task) => {
-      const overview = overviewByTask[task.id_aa]
-      if (!overview) return buildRows(task, [], [], null, harnessesByKey)
-      return buildRows(task, overview.runs, overview.history, overview.compare, harnessesByKey)
-    })
-    return rowArrays.flat()
-  }, [isAdmin])
-
   useEffect(() => {
-    let cancelled = false
-    const key = rowsCacheKey(isAdmin, user?.id)
-    const cached = readCache(key)
-    // A cache hit renders instantly with no loading flash  -  loadRows()
-    // below still runs to silently refresh it. Only a true miss (nothing
-    // cached for this isAdmin scope yet) shows the loading state.
-    if (cached !== undefined) {
-      setRows(cached)
-      setLoading(false)
-      setRevalidating(true)
-    } else {
-      setLoading(true)
-    }
-    loadRows()
-      .then((built) => {
-        if (cancelled) return
-        writeCache(key, built)
-        setRows(built)
-        setLoading(false)
-        setRevalidating(false)
+    api.listCategories().then(setCategories).catch(() => {})
+  }, [])
+
+  const fetchBoard = useCallback(
+    async (pageNum) => {
+      const result = await api.runsBoard({
+        category: category || undefined,
+        includeDeleted: isAdmin,
+        status: statusFilter || undefined,
+        outcome: outcome || undefined,
+        sort: runOrder,
+        page: pageNum,
+        limit: BATTLES_PER_PAGE,
       })
-      .catch(() => {
-        if (cancelled) return
-        if (cached === undefined) setLoading(false)
-        setRevalidating(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [loadRows, isAdmin, user?.id])
+      return {
+        rows: (result.rows ?? []).map(mapBoardRow),
+        total: result.total ?? 0,
+        page: result.page ?? pageNum,
+      }
+    },
+    [category, statusFilter, outcome, runOrder, isAdmin]
+  )
+
+  const applyBoardResult = useCallback((result) => {
+    setRows(result.rows)
+    setTotal(result.total)
+  }, [])
+
+  const boardScopeKey = useMemo(
+    () => `${isAdmin}:${category}:${statusFilter}:${outcome}:${runOrder}`,
+    [isAdmin, category, statusFilter, outcome, runOrder]
+  )
+
+  const hasNextBoardPage = useCallback(
+    (pageNum, data) => pageNum < Math.max(1, Math.ceil(data.total / BATTLES_PER_PAGE)),
+    []
+  )
+
+  const { loading, refreshCurrentPage: refreshBoardPage } = useAdjacentPagePrefetch({
+    page,
+    scopeKey: boardScopeKey,
+    fetchPage: fetchBoard,
+    applyPage: applyBoardResult,
+    hasNextPage: hasNextBoardPage,
+  })
+
+  const reloadBoard = useCallback(async () => {
+    const result = await refreshBoardPage()
+    return result.rows
+  }, [refreshBoardPage])
 
   // Deliverable counts on an in-flight run only change while it's running,
   // so refresh the rows on the same low-frequency cadence as the batch
@@ -1333,41 +1408,18 @@ export default function BattleLog() {
   const anyInFlight = rows.some((r) => r.inFlight)
   useEffect(() => {
     if (!anyInFlight) return undefined
-    let cancelled = false
     const timer = setInterval(() => {
-      loadRows()
-        .then((built) => {
-          if (cancelled) return
-          writeCache(rowsCacheKey(isAdmin, user?.id), built)
-          setRows(built)
-        })
-        .catch(() => {})
+      reloadBoard().catch(() => {})
     }, BACKGROUND_POLL_MS)
     return () => {
-      cancelled = true
       clearInterval(timer)
     }
-  }, [anyInFlight, loadRows, isAdmin, user?.id])
+  }, [anyInFlight, reloadBoard])
 
-  // The interval above only starts once `rows` already contains something
-  // in flight  -  which is exactly the state a round submitted elsewhere
-  // (e.g. from Evaluate) never puts THIS page into, if it stayed mounted
-  // the whole time (this SPA keeps pages alive across navigation for the
-  // instant-cache-render UX, rather than remounting). Without this, coming
-  // back to an already-open Battle Log tab after submitting a round shows
-  // that round frozen at its pre-submission snapshot ("No runs yet") until
-  // a hard reload forces a real remount. Refetching once whenever the tab
-  // regains focus/visibility closes that gap without polling an idle,
-  // backgrounded tab on a timer.
   useEffect(() => {
     function refetchOnReturn() {
       if (document.visibilityState !== 'visible') return
-      loadRows()
-        .then((built) => {
-          writeCache(rowsCacheKey(isAdmin, user?.id), built)
-          setRows(built)
-        })
-        .catch(() => {})
+      reloadBoard().catch(() => {})
     }
     document.addEventListener('visibilitychange', refetchOnReturn)
     window.addEventListener('focus', refetchOnReturn)
@@ -1375,7 +1427,7 @@ export default function BattleLog() {
       document.removeEventListener('visibilitychange', refetchOnReturn)
       window.removeEventListener('focus', refetchOnReturn)
     }
-  }, [loadRows, isAdmin, user?.id])
+  }, [reloadBoard])
 
   function setRunBusy(runId, isBusy) {
     setBusyRunIds((current) => {
@@ -1391,7 +1443,7 @@ export default function BattleLog() {
     setError('')
     try {
       await api.retryRun(runId)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -1405,7 +1457,7 @@ export default function BattleLog() {
     setError('')
     try {
       await api.stopRun(runId)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -1419,7 +1471,7 @@ export default function BattleLog() {
     setError('')
     try {
       await api.deleteFailedRun(runId)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -1432,7 +1484,7 @@ export default function BattleLog() {
     setError('')
     try {
       await api.deleteRound(roundId)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     }
@@ -1442,7 +1494,7 @@ export default function BattleLog() {
     if (!window.confirm(`Delete every run, deliverable, score, and AI judge verdict for “${task.title}”? This cannot be undone.`)) return
     try {
       await api.deleteTaskResults(task.id_aa)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     }
@@ -1452,7 +1504,7 @@ export default function BattleLog() {
     if (!window.confirm(`Delete “${task.title}” and all of its runs, deliverables, scores, and AI judge data? This cannot be undone.`)) return
     try {
       await api.deleteTask(task.id_aa)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     }
@@ -1461,16 +1513,12 @@ export default function BattleLog() {
   async function restore(task) {
     try {
       await api.restoreTask(task.id_aa)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // Narrower than "Delete results": the runs/deliverables stay exactly as
-  // they are, only the human votes on them are wiped, so judging starts
-  // over from zero  -  no leftover community rating, no stale "Judged by
-  // you" for anyone who already scored it.
   async function resetScores(task) {
     if (
       !window.confirm(
@@ -1480,66 +1528,30 @@ export default function BattleLog() {
       return
     try {
       await api.resetScores(task.id_aa)
-      setRows(await loadRows())
+      await reloadBoard()
     } catch (err) {
       setError(err.message)
     }
   }
 
-  const shown = useMemo(() => {
-    const filtered = rows.filter(
-        (r) =>
-          r.status !== 'Not run' &&
-          (!category || categoryLabel(r.task) === category) &&
-          (!statusFilter || r.status === statusFilter) &&
-          (!outcome || r.outcome === outcome)
-      )
-    return filtered.sort((a, b) => {
-      const difference = a.latestRunAt - b.latestRunAt
-      if (difference !== 0) return runOrder === 'desc' ? -difference : difference
-      return a.rowKey.localeCompare(b.rowKey)
-    })
-  }, [rows, category, statusFilter, outcome, runOrder])
-
-  // Any filter change (or the row set shrinking, e.g. after a delete) can
-  // leave `page` pointing past the new last page  -  reset/clamp rather
-  // than showing an empty page with real results one click back.
   useEffect(() => {
     setPage(1)
   }, [category, statusFilter, outcome, runOrder])
-  const pageCount = Math.max(1, Math.ceil(shown.length / BATTLES_PER_PAGE))
+
+  const pageCount = Math.max(1, Math.ceil(total / BATTLES_PER_PAGE))
   useEffect(() => {
     setPage((p) => Math.min(p, pageCount))
   }, [pageCount])
-  const pageRows = useMemo(
-    () => shown.slice((page - 1) * BATTLES_PER_PAGE, page * BATTLES_PER_PAGE),
-    [shown, page]
-  )
-
-  const categoryOptions = useMemo(
-    () => [...new Set(rows.filter((row) => row.status !== 'Not run').map((row) => categoryLabel(row.task)).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [rows]
-  )
-
-  const counts = useMemo(
-    () => ({
-      judged: rows.filter((r) => r.status === 'Judged').length,
-      awaiting: rows.filter((r) => r.status === 'Awaiting your judgement' || r.status === 'Awaiting community & your judgement').length,
-    }),
-    [rows]
-  )
 
   return (
     <div className="space-y-6">
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="eyebrow">Battle log</p>
-          <RevalidatingBadge show={revalidating} />
         </div>
         <h1 className="font-display mt-1 text-3xl font-semibold leading-tight sm:text-4xl">Battle Log</h1>
         <p className="mt-2 max-w-2xl text-ink-2">
-          Completed and active battles in the arena. {counts.judged} judged, {counts.awaiting} awaiting
-          judgement. Expand a row for the side-by-side comparison.
+          Completed and active battles in the arena. Expand a row for the side-by-side comparison.
         </p>
       </div>
 
@@ -1554,7 +1566,7 @@ export default function BattleLog() {
         </div>
         <div className="filter-field">
           <span className="filter-label">Category</span>
-          <ChoiceDropdown compact className="w-full" value={category} onChange={setCategory} placeholder="All" options={[{ id: '', label: 'All' }, ...categoryOptions.map((item) => ({ id: item, label: item }))]} />
+          <ChoiceDropdown compact className="w-full" value={category} onChange={setCategory} placeholder="All" options={[{ id: '', label: 'All' }, ...categories.map((item) => ({ id: item, label: item }))]} />
         </div>
         <div className="filter-field">
           <span className="filter-label">Outcome</span>
@@ -1568,9 +1580,9 @@ export default function BattleLog() {
 
       {loading ? (
         <LoadingState label="Loading battle history…" />
-      ) : shown.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState>
-          {rows.every((row) => row.status === 'Not run') ? (
+          {!category && !statusFilter && !outcome ? (
             <>
               No battles recorded yet. Start one from{' '}
               <Link to="/benchmark" className="text-link">
@@ -1585,10 +1597,10 @@ export default function BattleLog() {
       ) : (
         <>
           <p className="eyebrow">
-            Showing {pageRows.length ? (page - 1) * BATTLES_PER_PAGE + 1 : 0}–{(page - 1) * BATTLES_PER_PAGE + pageRows.length} of {shown.length} battle{shown.length === 1 ? '' : 's'}
+            Showing {rows.length ? (page - 1) * BATTLES_PER_PAGE + 1 : 0}–{(page - 1) * BATTLES_PER_PAGE + rows.length} of {total} battle{total === 1 ? '' : 's'}
           </p>
           <div className="space-y-3">
-            {pageRows.map((r) => (
+            {rows.map((r) => (
               <BattleRow
                 key={r.rowKey}
                 row={r}
