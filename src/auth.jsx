@@ -1,12 +1,30 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, setRefreshToken, setUserToken } from './api.js'
+import AuthModal from './components/AuthModal.jsx'
 
 const AuthContext = createContext(null)
+const SESSION_EXPIRED_REASON = 'Your session expired. Please sign in again.'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [adminMode, setAdminMode] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sessionExpiredPrompt, setSessionExpiredPrompt] = useState(false)
+
+  const clearUser = useCallback(() => {
+    setUserToken(null)
+    setUser(null)
+    setAdminMode(false)
+  }, [])
+
+  useEffect(() => {
+    function onSessionExpired() {
+      clearUser()
+      setSessionExpiredPrompt(true)
+    }
+    window.addEventListener('arena:session-expired', onSessionExpired)
+    return () => window.removeEventListener('arena:session-expired', onSessionExpired)
+  }, [clearUser])
 
   useEffect(() => {
     api
@@ -15,13 +33,9 @@ export function AuthProvider({ children }) {
         setUser(session.user)
         setAdminMode(Boolean(session.user.is_admin))
       })
-      .catch(() => {
-        setUserToken(null)
-        setUser(null)
-        setAdminMode(false)
-      })
+      .catch(clearUser)
       .finally(() => setLoading(false))
-  }, [])
+  }, [clearUser])
 
   async function login(username, password) {
     const res = await api.userLogin(username, password)
@@ -62,6 +76,13 @@ export function AuthProvider({ children }) {
       }}
     >
       {children}
+      {sessionExpiredPrompt && (
+        <AuthModal
+          reason={SESSION_EXPIRED_REASON}
+          onClose={() => setSessionExpiredPrompt(false)}
+          onSuccess={() => setSessionExpiredPrompt(false)}
+        />
+      )}
     </AuthContext.Provider>
   )
 }
