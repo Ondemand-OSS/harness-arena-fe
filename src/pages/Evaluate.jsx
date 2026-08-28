@@ -456,10 +456,12 @@ export default function Evaluate({ group, onGroupChange }) {
   const [judgePicking, setJudgePicking] = useState(null)
   const [page, setPage] = useState(1)
 
-  // Latest task list, readable from below without making it an effect
-  // dependency (which would tear down and restart timers constantly).
+  // Latest task list and runs, readable from below without making them
+  // effect dependencies (which would tear down and restart timers constantly).
   const tasksRef = useRef([])
   tasksRef.current = tasks
+  const runsByTaskRef = useRef(runsByTask)
+  runsByTaskRef.current = runsByTask
 
   useEffect(() => {
     api.listConfigs().then(setProfiles).catch(() => {})
@@ -578,10 +580,19 @@ export default function Evaluate({ group, onGroupChange }) {
   // down  -  both just need "apply these overview rows to state", not two
   // copies of the same merge logic.
   const applyOverviewRows = useCallback((rows) => {
-    const { runsByTask: nextRuns, historyByTask: nextHistory, judgedTaskIds } = overviewFromRows(rows)
-    setRunsByTask(nextRuns)
-    setHistoryByTask(nextHistory)
-    setJudgedTasks(new Set(judgedTaskIds))
+    const { runsByTask: nextRuns, historyByTask: nextHistory } = overviewFromRows(rows)
+    // Merge, don't replace  -  polling only requests in-flight task ids, so a
+    // full replace would wipe every other card back to "No runs recorded yet".
+    setRunsByTask((prev) => ({ ...prev, ...nextRuns }))
+    setHistoryByTask((prev) => ({ ...prev, ...nextHistory }))
+    setJudgedTasks((prev) => {
+      const next = new Set(prev)
+      for (const row of rows) {
+        if (row.compare?.revealed) next.add(row.task_id)
+        else next.delete(row.task_id)
+      }
+      return next
+    })
   }, [])
 
   // Poll only while something is actually in flight, and not so often that
@@ -594,13 +605,15 @@ export default function Evaluate({ group, onGroupChange }) {
   useEffect(() => {
     const timer = setInterval(() => {
       const inFlightIds = tasksRef.current
-        .filter((t) => runsByTask[t.id_aa]?.some((r) => r.status === 'pending' || r.status === 'running'))
+        .filter((t) =>
+          runsByTaskRef.current[t.id_aa]?.some((r) => r.status === 'pending' || r.status === 'running')
+        )
         .map((t) => t.id_aa)
       if (!inFlightIds.length) return
       api.runsOverview(inFlightIds).then(applyOverviewRows).catch(() => {})
     }, 4000)
     return () => clearInterval(timer)
-  }, [runsByTask, applyOverviewRows])
+  }, [applyOverviewRows])
 
   // Battles and judging both use up real (or free-tier) API capacity, so
   // both require a signed-in account, not just score submission. The

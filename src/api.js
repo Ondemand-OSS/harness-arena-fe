@@ -26,6 +26,16 @@ function readStoredRefreshToken() {
 let accessToken = null
 let refreshToken = readStoredRefreshToken()
 let refreshPromise = null
+const REFRESH_MAX_ATTEMPTS = 3
+
+function invalidateSession({ promptLogin = false } = {}) {
+  const hadSession = Boolean(refreshToken)
+  setUserToken(null)
+  setRefreshToken(null)
+  if (promptLogin && hadSession && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('arena:session-expired'))
+  }
+}
 
 export const setUserToken = (token) => {
   accessToken = token || null
@@ -52,22 +62,30 @@ function headers(hasBody) {
 async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
-    // Avoid a refresh request when no session is available.
     if (!refreshToken) throw new Error('session expired')
-    const res = await fetch(url('/api/users/session/refresh'), {
-      method: 'POST',
-      headers: { 'x-refresh-token': refreshToken },
-    })
-    if (!res.ok) {
-      setUserToken(null)
-      setRefreshToken(null)
-      throw new Error('session expired')
+
+    let lastError = new Error('session expired')
+    for (let attempt = 1; attempt <= REFRESH_MAX_ATTEMPTS; attempt++) {
+      try {
+        const res = await fetch(url('/api/users/session/refresh'), {
+          method: 'POST',
+          headers: { 'x-refresh-token': refreshToken },
+        })
+        if (!res.ok) {
+          lastError = new Error('session expired')
+          continue
+        }
+        const session = await res.json()
+        setUserToken(session.access_token)
+        if (session.refresh_token) setRefreshToken(session.refresh_token)
+        return session
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error('session expired')
+      }
     }
-    const session = await res.json()
-    setUserToken(session.access_token)
-    // Store the rotated refresh token.
-    if (session.refresh_token) setRefreshToken(session.refresh_token)
-    return session
+
+    invalidateSession({ promptLogin: true })
+    throw lastError
   })().finally(() => {
     refreshPromise = null
   })
