@@ -9,7 +9,7 @@ import { LoadingState, ModelBadge, PageHeader } from '../components/ui.jsx'
 
 const ONDEMAND_PLAYGROUND_URL = 'https://app.on-demand.io/playground'
 const ONDEMAND_AUTH_DOCS_URL = 'https://docs.on-demand.io/docs/authentication'
-const CATEGORY_GROUPS = ['Code', 'Research', 'Analysis & Risk', 'Operations', 'Other']
+const CATEGORY_GROUPS = ['Code', 'Research', 'Analysis & Risk', 'Operations', 'Real World Agentic Tasks', 'Other']
 
 /** OnDemand's own authentication docs aren't embeddable here (external
  *  sites routinely block framing via X-Frame-Options/CSP, and this app has
