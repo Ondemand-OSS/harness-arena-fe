@@ -8,7 +8,7 @@ import ChoiceDropdown from '../components/ChoiceDropdown.jsx'
 import JudgeRunPickerModal from '../components/JudgeRunPickerModal.jsx'
 import ModelPickerModal from '../components/ModelPickerModal.jsx'
 import TaskPromptModal from '../components/TaskPromptModal.jsx'
-import { IconBrowser, IconChevron } from '../components/icons.jsx'
+import { IconBrowser } from '../components/icons.jsx'
 import { isWebProjectTask } from '../lib/webProject.js'
 import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 import {
@@ -77,47 +77,6 @@ function ModelTags({ runs }) {
         <ModelBadge key={m} model={m} />
       ))}
     </span>
-  )
-}
-
-function HarnessFilterDropdown({ harnesses, selected, onChange }) {
-  const allSelected = selected.length === harnesses.length
-  const selectedHarness = selected.length === 1 ? harnesses.find((harness) => harness.key === selected[0]) : null
-  const label = allSelected || !selectedHarness ? 'All harnesses' : selectedHarness.name
-
-  function choose(keys, event) {
-    onChange(keys)
-    event.currentTarget.closest('details')?.removeAttribute('open')
-  }
-
-  return (
-    <details className="harness-filter">
-      <summary>
-        {selectedHarness && <HarnessAvatar harnessKey={selectedHarness.key} name={selectedHarness.name} size={18} />}
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        <IconChevron className="harness-filter-chevron shrink-0 text-base text-ink-3" />
-      </summary>
-      <div className="harness-filter-menu">
-        <button
-          type="button"
-          className={`harness-filter-option ${allSelected ? 'harness-filter-option-active' : ''}`}
-          onClick={(event) => choose(harnesses.map((harness) => harness.key), event)}
-        >
-          All harnesses
-        </button>
-        {harnesses.map((harness) => (
-          <button
-            key={harness.key}
-            type="button"
-            className={`harness-filter-option ${selectedHarness?.key === harness.key ? 'harness-filter-option-active' : ''}`}
-            onClick={(event) => choose([harness.key], event)}
-          >
-            <HarnessAvatar harnessKey={harness.key} name={harness.name} size={20} />
-            {harness.name}
-          </button>
-        ))}
-      </div>
-    </details>
   )
 }
 
@@ -451,7 +410,6 @@ export default function Evaluate({ group, onGroupChange }) {
   const [groups, setGroups] = useState([])
   const [category, setCategory] = useState('')
   const [harnesses, setHarnesses] = useState([])
-  const [selected, setSelected] = useState([])
   const [runsByTask, setRunsByTask] = useState({})
   const [historyByTask, setHistoryByTask] = useState({})
   const [judgedTasks, setJudgedTasks] = useState(() => new Set())
@@ -500,9 +458,6 @@ export default function Evaluate({ group, onGroupChange }) {
       .listHarnesses()
       .then((list) => {
         setHarnesses(list)
-        // This is a results filter, so include every known harness by
-        // default, including OnDemand when its recorded results exist.
-        setSelected(list.map((h) => h.key))
       })
       .catch(() => {})
   }, [])
@@ -645,9 +600,7 @@ export default function Evaluate({ group, onGroupChange }) {
    *  one output has nothing to be compared against (the backend enforces
    *  the same rule, this just fails faster and more clearly). */
   function runnableHarnesses() {
-    return (selected.length ? selected : harnesses.map((h) => h.key)).filter(
-      (key) => harnesses.find((h) => h.key === key)?.enabled
-    )
+    return harnesses.filter((harness) => harness.enabled).map((harness) => harness.key)
   }
 
   /** Step 1 of running: validate, then open the model picker. The actual
@@ -754,10 +707,7 @@ export default function Evaluate({ group, onGroupChange }) {
   const visibleTasks = tasks.filter((task) => {
     const runs = runsByTask[task.id_aa]
     if (runs?.some((run) => run.status === 'pending' || run.status === 'running')) return false
-    // Empty selection means “all harnesses”; otherwise this is an inclusive
-    // OR filter. One matching completed result is enough for the task card.
-    if (!selected.length) return true
-    return !runs?.length || runs.some((run) => run.status === 'done' && selected.includes(run.harness_key))
+    return true
   })
 
   // Filter changes (or the visible set shrinking, e.g. a task getting
@@ -765,7 +715,7 @@ export default function Evaluate({ group, onGroupChange }) {
   // rather than showing an empty page with real results one click back.
   useEffect(() => {
     setPage(1)
-  }, [group, category, selected])
+  }, [group, category])
 
   const pageTasks = visibleTasks
   const pageCount = hasMoreTasks ? page + 1 : Math.max(1, page)
@@ -807,10 +757,6 @@ export default function Evaluate({ group, onGroupChange }) {
         <div className="filter-field">
           <span className="filter-label">Category</span>
           <ChoiceDropdown compact className="min-w-48" value={category} onChange={setCategory} placeholder="All" options={[{ id: '', label: 'All' }, ...categories.map((item) => ({ id: item, label: item }))]} />
-        </div>
-        <div className="filter-field">
-          <span className="filter-label">Harness</span>
-          <HarnessFilterDropdown harnesses={harnesses} selected={selected} onChange={setSelected} />
         </div>
       </div>
 
