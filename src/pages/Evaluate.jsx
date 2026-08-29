@@ -8,7 +8,7 @@ import ChoiceDropdown from '../components/ChoiceDropdown.jsx'
 import JudgeRunPickerModal from '../components/JudgeRunPickerModal.jsx'
 import ModelPickerModal from '../components/ModelPickerModal.jsx'
 import TaskPromptModal from '../components/TaskPromptModal.jsx'
-import { IconBrowser } from '../components/icons.jsx'
+import { IconBrowser, IconChevron } from '../components/icons.jsx'
 import { isWebProjectTask } from '../lib/webProject.js'
 import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 import {
@@ -94,7 +94,8 @@ function HarnessFilterDropdown({ harnesses, selected, onChange }) {
     <details className="harness-filter">
       <summary>
         {selectedHarness && <HarnessAvatar harnessKey={selectedHarness.key} name={selectedHarness.name} size={18} />}
-        <span>{label}</span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <IconChevron className="harness-filter-chevron shrink-0 text-base text-ink-3" />
       </summary>
       <div className="harness-filter-menu">
         <button
@@ -281,6 +282,14 @@ function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, h
         >
           {task.title}
         </button>
+        {isRecentlyUploaded(task) && (
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5 rounded bg-cta/20 px-1.5 py-0.5 font-mono-arena text-[10px] font-semibold uppercase tracking-wider text-cta"
+            title="Uploaded within the last 30 hours"
+          >
+            ✨ new
+          </span>
+        )}
         {isWebProjectTask(task) && (
           <span className="inline-flex shrink-0 text-link" title="Web app task" aria-label="Web app task">
             <IconBrowser className="text-lg" />
@@ -399,6 +408,12 @@ function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, h
 
 const STATS_REFRESH_MS = 30_000
 const TASKS_PER_PAGE = 6
+const RECENT_UPLOAD_WINDOW_MS = 30 * 60 * 60 * 1000
+
+function isRecentlyUploaded(task) {
+  const uploadedAt = new Date(task.imported_at || 0).getTime()
+  return uploadedAt > 0 && Date.now() - uploadedAt <= RECENT_UPLOAD_WINDOW_MS
+}
 
 function overviewFromRows(rows) {
   const runsByTask = {}

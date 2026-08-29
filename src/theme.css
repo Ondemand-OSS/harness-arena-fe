@@ -345,8 +345,8 @@ body {
 }
 .harness-filter summary::-webkit-details-marker { display: none; }
 .harness-filter summary:hover { background: var(--floating); border-color: var(--ink-3); }
-.harness-filter summary::after { content: '⌄'; margin-left: auto; color: var(--ink-3); font-size: 0.9rem; }
-.harness-filter[open] summary::after { transform: rotate(180deg); }
+.harness-filter-chevron { transition: transform 0.15s ease; }
+.harness-filter[open] .harness-filter-chevron { transform: rotate(180deg); }
 .harness-filter-menu {
   position: absolute;
   z-index: 30;
