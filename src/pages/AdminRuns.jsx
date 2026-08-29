@@ -78,6 +78,14 @@ function RunRow({ run, onRetry, busy }) {
             {run.deliverables_done}/{run.deliverables_expected} deliverables
           </span>
         )}
+        {run.status === 'done' && run.deliverables_expected > 0 && run.deliverables_done === 0 && (
+          <span
+            className="shrink-0 rounded bg-bad/15 px-1.5 py-0.5 font-mono-arena text-[10px] text-bad"
+            title="The agent reported this run as successful, but no deliverable files were produced."
+          >
+            no deliverable
+          </span>
+        )}
         {run.submitted_by && <span className="shrink-0 text-xs text-ink-3">by {run.submitted_by}</span>}
       </button>
 

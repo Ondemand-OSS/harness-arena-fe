@@ -942,6 +942,14 @@ function ComparisonTable({ entries, hideDeliverableCounts }) {
                   <span className="flex items-center gap-2">
                     <RateBar value={e.deliverables_done / Math.max(e.deliverables_expected, maxFiles)} color={identityColor(e.harness_key)} />
                     <span className="font-mono-arena">{e.deliverables_done}/{e.deliverables_expected}</span>
+                    {e.status === 'done' && e.deliverables_done === 0 && e.deliverables_expected > 0 && (
+                      <span
+                        className="shrink-0 rounded bg-bad/15 px-1.5 py-0.5 font-mono-arena text-[10px] text-bad"
+                        title="The agent reported this run as successful, but no deliverable files were produced."
+                      >
+                        no deliverable
+                      </span>
+                    )}
                   </span>
                 )}
               </td>
