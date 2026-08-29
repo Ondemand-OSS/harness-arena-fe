@@ -23,6 +23,13 @@ import { isWebProjectTask } from '../lib/webProject.js'
 import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 
 const STATUS_FILTERS = ['Queued', 'In progress', 'Partially failed', 'Failed', 'Insufficient results to judge', 'Judged', 'Awaiting your judgement', 'Awaiting community & your judgement']
+
+// Mirrors public_errors.no_deliverable_message on the backend: these two
+// messages are synthesized by us (runner.py's written_count == 0 checks),
+// not raw adapter/provider error text, so they're safe to call out here.
+function isNoDeliverableError(message) {
+  return message?.startsWith('Harness reported success but produced no deliverable files.')
+}
 const OUTCOME_FILTERS = ['Decisive', 'Tie']
 const INSUFFICIENT_RESULTS_MESSAGE = 'Not enough results to judge. Please retry failed ones or try again later.'
 
@@ -804,6 +811,14 @@ function FailedRuns({ entries, onRetry, onDelete, busyRunIds, isAdmin }) {
               <HarnessAvatar harnessKey={e.harness_key} name={e.harness_name} size={16} />
               <span className="shrink-0">{e.harness_name}</span>
               <ModelBadge model={e.model} />
+              {isNoDeliverableError(e.error_message) && (
+                <span
+                  className="shrink-0 rounded bg-bad/15 px-1.5 py-0.5 font-mono-arena text-[10px] text-bad"
+                  title="The agent reported this run as successful, but no deliverable files were produced."
+                >
+                  no deliverable
+                </span>
+              )}
               <span className="min-w-0 flex-1 truncate text-ink-3" title={e.error_message}>
                 {e.error_message}
               </span>
