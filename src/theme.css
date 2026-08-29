@@ -236,9 +236,7 @@ body {
   gap: 0.7rem;
 }
 .filter-toolbar-evaluate .filter-field { min-width: 0; }
-.filter-toolbar-evaluate .filter-select,
-.filter-toolbar-evaluate .harness-filter,
-.filter-toolbar-evaluate .harness-filter summary { min-width: 0; width: 100%; }
+.filter-toolbar-evaluate .filter-select { min-width: 0; width: 100%; }
 @media (max-width: 760px) {
   .filter-toolbar-single-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-toolbar-evaluate { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -246,8 +244,8 @@ body {
      once a column is half a phone wide. */
   .filter-toolbar-evaluate .filter-field { display: block; min-width: 0; }
   .filter-toolbar-evaluate .filter-label { display: block; margin: 0 0 0.35rem; }
-  /* ChoiceDropdown and HarnessFilterDropdown carry their own Tailwind
-     min-w-40 / min-w-48 utilities, which hold them WIDER than the grid column
+  /* ChoiceDropdown controls carry their own Tailwind min-w-40 / min-w-48
+     utilities, which hold them WIDER than the grid column
      they sit in and push the whole toolbar into horizontal page overflow. On a
      narrow viewport the column is the real constraint, so the utility has to
      lose  -  this selector is two classes deep and beats it without
@@ -324,55 +322,6 @@ body {
 }
 .filter-select:focus { outline: 2px solid var(--link); outline-offset: 2px; }
 .status-awaiting { color: var(--awaiting); }
-.harness-filter {
-  position: relative;
-}
-.harness-filter summary {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 10.5rem;
-  height: 2.55rem;
-  padding: 0 1rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  cursor: pointer;
-  font-size: 0.875rem;
-  list-style: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.harness-filter summary::-webkit-details-marker { display: none; }
-.harness-filter summary:hover { background: var(--floating); border-color: var(--ink-3); }
-.harness-filter-chevron { transition: transform 0.15s ease; }
-.harness-filter[open] .harness-filter-chevron { transform: rotate(180deg); }
-.harness-filter-menu {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 0.45rem);
-  left: 0;
-  min-width: 14rem;
-  padding: 0.4rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 0.85rem;
-  background: var(--surface);
-  box-shadow: var(--shadow-card), 0 12px 28px rgba(46, 43, 41, 0.14);
-}
-.harness-filter-option {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.6rem 0.7rem;
-  border-radius: 0.55rem;
-  color: var(--ink-2);
-  font-size: 0.875rem;
-  text-align: left;
-}
-.harness-filter-option:hover { background: var(--floating); color: var(--ink); }
-.harness-filter-option-active { background: var(--elevated); color: var(--ink); font-weight: 600; }
-
 /* Apply this only to cards that lead somewhere or represent a selectable
    result. Static panels and dialogs deliberately stay still. */
 .card-hover {
