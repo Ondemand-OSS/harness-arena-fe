@@ -10,6 +10,11 @@ import { EmptyState, HarnessAvatar, LoadingState, PageHeader, Tag } from '../com
 import { IconBrowser, IconChevron, IconClose, IconPaperclip } from '../components/icons.jsx'
 import RevalidatingBadge from '../components/RevalidatingBadge.jsx'
 import { readCache, writeCache } from '../lib/pageCache.js'
+import {
+  readLatestUploadTaskIds,
+  writeLatestUploadDatasetVersion,
+  writeLatestUploadTaskIds,
+} from '../lib/latestUpload.js'
 import { isWebProjectTask } from '../lib/webProject.js'
 
 // Module-scoped  -  survives navigating away and back within the same SPA
@@ -96,12 +101,12 @@ export default function Benchmark() {
   // document per task×harness) has already come back, so without this the
   // button visibly did nothing for however long that took.
   const [submitting, setSubmitting] = useState(false)
-  // Exactly the task ids the most recent upload/import THIS session
-  // actually just created  -  NOT dataset_version, which gets re-stamped on
+  // Exactly the task ids the most recent upload/import actually created,
+  // retained in this browser  -  NOT dataset_version, which gets re-stamped on
   // every row an import touches (new or already-existing), so comparing
   // against it badged literally every task as "new" on a second import of
   // the same file.
-  const [newTaskIds, setNewTaskIds] = useState(new Set())
+  const [newTaskIds, setNewTaskIds] = useState(() => readLatestUploadTaskIds())
   const [showAuth, setShowAuth] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(false)
   const pollRef = useRef(null)
@@ -252,7 +257,10 @@ export default function Benchmark() {
     try {
       const res = await api.uploadDataset(file)
       await refreshTasks()
-      setNewTaskIds(new Set(res.new_task_ids))
+      const latestTaskIds = new Set(res.new_task_ids ?? [])
+      setNewTaskIds(latestTaskIds)
+      writeLatestUploadTaskIds(latestTaskIds)
+      writeLatestUploadDatasetVersion(res.dataset_version)
       setStatus(`Loaded ${res.imported} tasks (dataset ${res.dataset_version}).`)
     } catch (err) {
       setStatus('')

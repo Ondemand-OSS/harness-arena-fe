@@ -9,6 +9,11 @@ import JudgeRunPickerModal from '../components/JudgeRunPickerModal.jsx'
 import ModelPickerModal from '../components/ModelPickerModal.jsx'
 import TaskPromptModal from '../components/TaskPromptModal.jsx'
 import { IconBrowser } from '../components/icons.jsx'
+import {
+  readLatestUploadDatasetVersion,
+  readLatestUploadTaskIds,
+  writeLatestUploadDatasetVersion,
+} from '../lib/latestUpload.js'
 import { isWebProjectTask } from '../lib/webProject.js'
 import { useAdjacentPagePrefetch } from '../lib/useAdjacentPagePrefetch.js'
 import {
@@ -182,7 +187,7 @@ function judgeableGroup(runs, history) {
   return groups.reduce((best, g) => (g.latestRunId > best.latestRunId ? g : best)).profileId
 }
 
-function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, hasJudgeVerdict, busy, notice, onBattle, onRegenerate, onJudge, onDeleteResults, onDeleteTask, onRestore, onOpenPrompt }) {
+function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, hasJudgeVerdict, busy, notice, isLatestUpload, onBattle, onRegenerate, onJudge, onDeleteResults, onDeleteTask, onRestore, onOpenPrompt }) {
   const state = runState(runs)
   const doneCount = (runs || []).filter((r) => r.status === 'done').length
   const fileCount = task.deliverable_files?.length ?? 0
@@ -241,10 +246,10 @@ function TaskCard({ task, runs, history, harnesses, signedIn, isAdmin, judged, h
         >
           {task.title}
         </button>
-        {isRecentlyUploaded(task) && (
+        {(isLatestUpload || isRecentlyUploaded(task)) && (
           <span
             className="inline-flex shrink-0 items-center gap-0.5 rounded bg-cta/20 px-1.5 py-0.5 font-mono-arena text-[10px] font-semibold uppercase tracking-wider text-cta"
-            title="Uploaded within the last 30 hours"
+            title={isLatestUpload ? 'Part of the latest upload' : 'Uploaded within the last 30 hours'}
           >
             ✨ new
           </span>
@@ -409,6 +414,8 @@ export default function Evaluate({ group, onGroupChange }) {
   const [categories, setCategories] = useState([])
   const [groups, setGroups] = useState([])
   const [category, setCategory] = useState('')
+  const [latestUploadTaskIds] = useState(() => readLatestUploadTaskIds())
+  const [latestUploadDatasetVersion, setLatestUploadDatasetVersion] = useState(() => readLatestUploadDatasetVersion())
   const [harnesses, setHarnesses] = useState([])
   const [runsByTask, setRunsByTask] = useState({})
   const [historyByTask, setHistoryByTask] = useState({})
@@ -470,6 +477,17 @@ export default function Evaluate({ group, onGroupChange }) {
   }, [])
 
   const applyEvaluatePage = useCallback((pageData) => {
+    setLatestUploadDatasetVersion((current) => {
+      if (current) return current
+      const latestTask = pageData.tasks.reduce((latest, task) => {
+        const latestTime = new Date(latest?.imported_at || 0).getTime()
+        const taskTime = new Date(task.imported_at || 0).getTime()
+        return taskTime > latestTime ? task : latest
+      }, null)
+      const datasetVersion = latestTask?.dataset_version || ''
+      if (datasetVersion) writeLatestUploadDatasetVersion(datasetVersion)
+      return datasetVersion
+    })
     setTasks(pageData.tasks)
     setHasMoreTasks(pageData.hasMoreTasks)
     setRunsByTask(pageData.runsByTask)
@@ -779,6 +797,7 @@ export default function Evaluate({ group, onGroupChange }) {
             hasJudgeVerdict={task.has_judge_verdict}
             busy={busyTask === task.id_aa}
             notice={noticeByTask[task.id_aa]}
+            isLatestUpload={latestUploadTaskIds.has(task.id_aa) || task.dataset_version === latestUploadDatasetVersion}
             onBattle={() => requireAuth(() => openModelPicker(task.id_aa, false))}
             onRegenerate={() => requireAuth(() => openModelPicker(task.id_aa, true))}
             onJudge={() => requireAuth(() => judge(task.id_aa))}
