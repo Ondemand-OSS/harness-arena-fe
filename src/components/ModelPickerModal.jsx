@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { FAMILY_MARKS } from './brandLogos.jsx'
 import { HarnessAvatar, ModelBadge } from './ui.jsx'
+import SkillPicker from './SkillPicker.jsx'
 
 // Display order for the admin-curated free-model families  -  mirrors
 // backend/app/routers/config.py's FREE_MODEL_FAMILIES. A profile with no
@@ -30,6 +31,8 @@ export default function ModelPickerModal({ profiles, runs, harnesses, initialHar
   const [harnessKeys, setHarnessKeys] = useState(initialHarnessKeys)
   const [selectedProfileId, setSelectedProfileId] = useState(null)
   const [harnessNotice, setHarnessNotice] = useState('')
+  const [selectedSkillIds, setSelectedSkillIds] = useState([])
+  const [selectedSkillNames, setSelectedSkillNames] = useState([])
 
   useEffect(() => {
     function onKey(e) {
@@ -144,6 +147,14 @@ export default function ModelPickerModal({ profiles, runs, harnesses, initialHar
             </p>
           </div>
 
+          <SkillPicker
+            selectedSkillIds={selectedSkillIds}
+            onChange={(ids, skills) => {
+              setSelectedSkillIds(ids)
+              setSelectedSkillNames(skills.map((skill) => skill.name))
+            }}
+          />
+
           {/* Which OnDemand model a run uses is no longer picked here  -  it's
               implied by the free profile chosen below, via the admin's
               mapping set in Setup. Only the "have you set an OnDemand key at
@@ -215,7 +226,7 @@ export default function ModelPickerModal({ profiles, runs, harnesses, initialHar
               type="button"
               className="btn-cta text-sm disabled:opacity-50"
               disabled={busy || harnessKeys.length < 2 || selectedProfileId == null}
-              onClick={() => onSelect(selectedProfileId, harnessKeys)}
+              onClick={() => onSelect(selectedProfileId, harnessKeys, selectedSkillIds, selectedSkillNames)}
             >
               {busy ? 'Submitting…' : 'Submit run'}
             </button>

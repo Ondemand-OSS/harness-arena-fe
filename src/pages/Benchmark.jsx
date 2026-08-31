@@ -5,6 +5,7 @@ import { api, getUserToken } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import AuthModal from '../components/AuthModal.jsx'
 import ReferenceFileModal from '../components/ReferenceFileModal.jsx'
+import SkillPicker from '../components/SkillPicker.jsx'
 import TaskPromptModal from '../components/TaskPromptModal.jsx'
 import { EmptyState, HarnessAvatar, LoadingState, PageHeader, Tag } from '../components/ui.jsx'
 import { IconBrowser, IconChevron, IconClose, IconPaperclip } from '../components/icons.jsx'
@@ -85,6 +86,8 @@ export default function Benchmark() {
   const [selectedProfileId, setSelectedProfileId] = useState('')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [selectedHarnesses, setSelectedHarnesses] = useState([])
+  const [selectedSkillIds, setSelectedSkillIds] = useState([])
+  const [selectedSkillNames, setSelectedSkillNames] = useState([])
   const [harnessNotice, setHarnessNotice] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [selectedTasks, setSelectedTasks] = useState(new Set())
@@ -354,7 +357,7 @@ export default function Benchmark() {
     setStatus('')
     setSubmitting(true)
     try {
-      const created = await api.submitBatch(ids, selectedHarnesses, Number(selectedProfileId))
+      const created = await api.submitBatch(ids, selectedHarnesses, Number(selectedProfileId), null, selectedSkillIds, selectedSkillNames)
       setBatch(created)
       navigate('/battles', { state: { submittedTaskIds: ids } })
     } catch (err) {
@@ -450,6 +453,13 @@ export default function Benchmark() {
             {harnessNotice || 'Set your OnDemand API key in Setup before selecting OnDemand.'} <Link to="/setup" className="text-link">Open Setup</Link>
           </p>
         )}
+        <SkillPicker
+          selectedSkillIds={selectedSkillIds}
+          onChange={(ids, skills) => {
+            setSelectedSkillIds(ids)
+            setSelectedSkillNames(skills.map((skill) => skill.name))
+          }}
+        />
       </div>
 
       <div className="card space-y-3 p-5">

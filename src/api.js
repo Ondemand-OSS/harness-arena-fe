@@ -246,6 +246,9 @@ export const api = {
   deleteOndemandModel: (id) => request('DELETE', `/api/ondemand-models/${id}`),
   getOndemandSuggestPlugins: () => request('GET', '/api/ondemand-models/suggest-plugins'),
   setOndemandSuggestPlugins: (enabled) => request('PUT', '/api/ondemand-models/suggest-plugins', { enabled }),
+  // The signed-in user's own subscribed OnDemand skills, for picking which
+  // ones to stage into a run (see components/SkillPicker.jsx).
+  listOndemandSkills: () => request('GET', '/api/ondemand-skills'),
 
   listConfigs: () => request('GET', '/api/config'),
   createConfig: (cfg) => request('POST', '/api/config', cfg),
@@ -260,13 +263,15 @@ export const api = {
   updateCustomHarness: (key, body) => request('PUT', `/api/harnesses/custom/${encodeURIComponent(key)}`, body),
   deleteCustomHarness: (key) => request('DELETE', `/api/harnesses/custom/${encodeURIComponent(key)}`),
 
-  triggerRun: (taskId, harnessKeys, force = false, providerConfigId = null, ondemandModelId = null) =>
+  triggerRun: (taskId, harnessKeys, force = false, providerConfigId = null, ondemandModelId = null, skillIds = null, skillNames = null) =>
     request('POST', '/api/runs', {
       task_id: taskId,
       harness_keys: harnessKeys ?? null,
       force,
       provider_config_id: providerConfigId,
       ondemand_model_id: ondemandModelId,
+      skill_ids: skillIds,
+      skill_names: skillNames,
     }),
   listRunsForTask: (taskId, providerConfigId = null) =>
     request('GET', `/api/runs/by-task/${encodeURIComponent(taskId)}${providerConfigId != null ? `?provider_config_id=${providerConfigId}` : ''}`),
@@ -318,12 +323,14 @@ export const api = {
   // Download URL for a web project.
   runProjectZipUrl: (runId) => url(`/api/runs/${runId}/project.zip`),
 
-  submitBatch: (taskIds, harnessKeys, providerConfigId = null, ondemandModelId = null) =>
+  submitBatch: (taskIds, harnessKeys, providerConfigId = null, ondemandModelId = null, skillIds = null, skillNames = null) =>
     request('POST', '/api/batches', {
       task_ids: taskIds,
       harness_keys: harnessKeys ?? null,
       provider_config_id: providerConfigId,
       ondemand_model_id: ondemandModelId,
+      skill_ids: skillIds,
+      skill_names: skillNames,
     }),
   listBatches: (activeOnly) => request('GET', `/api/batches${activeOnly ? '?active_only=true' : ''}`),
   getBatch: (id) => request('GET', `/api/batches/${id}`),
