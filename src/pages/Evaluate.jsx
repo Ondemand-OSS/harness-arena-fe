@@ -637,7 +637,7 @@ export default function Evaluate({ group, onGroupChange }) {
   // admin-set mapping now  -  no ondemandModelId is picked or sent from here
   // any more (api.triggerRun's own parameter is deprecated but kept for old
   // clients; passing null is deliberate).
-  async function battle(taskId, force, profileId, selectedHarnessKeys) {
+  async function battle(taskId, force, profileId, selectedHarnessKeys, skillIds, skillNames) {
     const runnableSelection = (selectedHarnessKeys ?? runnableHarnesses()).filter(
       (key) => harnesses.find((harness) => harness.key === key)?.enabled
     )
@@ -649,7 +649,7 @@ export default function Evaluate({ group, onGroupChange }) {
     setError('')
     setNoticeByTask((prev) => ({ ...prev, [taskId]: '' }))
     try {
-      await api.triggerRun(taskId, runnableSelection, force, profileId ?? null)
+      await api.triggerRun(taskId, runnableSelection, force, profileId ?? null, null, skillIds ?? null, skillNames ?? null)
       api.stats().then(setStats).catch(() => {})
       navigate('/battles', { state: { submittedTaskId: taskId } })
     } catch (err) {
@@ -839,10 +839,10 @@ export default function Evaluate({ group, onGroupChange }) {
           initialHarnessKeys={runnableHarnesses()}
           busy={busyTask === picking.taskId}
           onClose={() => setPicking(null)}
-          onSelect={(profileId, selectedHarnessKeys) => {
+          onSelect={(profileId, selectedHarnessKeys, skillIds, skillNames) => {
             const { taskId, force } = picking
             setPicking(null)
-            battle(taskId, force, profileId, selectedHarnessKeys)
+            battle(taskId, force, profileId, selectedHarnessKeys, skillIds, skillNames)
           }}
         />
       )}

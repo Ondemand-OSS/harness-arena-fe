@@ -282,6 +282,20 @@ export function ModelBadge({ model, className = '' }) {
   )
 }
 
+/** Which OnDemand skills (if any) a run was submitted with  -  see
+ *  schemas.RunRequest.skill_names. Renders nothing for a run with none. */
+export function SkillsBadge({ skillNames, className = '' }) {
+  if (!skillNames?.length) return null
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded bg-cta/10 px-1.5 py-0.5 font-mono-arena text-[10px] text-cta ${className}`}
+      title={`Skills: ${skillNames.join(', ')}`}
+    >
+      {skillNames.length === 1 ? skillNames[0] : `${skillNames.length} skills`}
+    </span>
+  )
+}
+
 /** A/B/C(/D/E/F) badge for an anonymized output, colored by slot. Six
  *  tokens rather than three: a battle can have more than 3 harnesses
  *  running (the registry isn't capped at 3), and reusing colors past that

@@ -12,6 +12,7 @@ import {
   PageHeader,
   Pagination,
   RateBar,
+  SkillsBadge,
   SlotBadge,
   Tag,
   identityColor,
@@ -407,6 +408,7 @@ function buildLegacyRows(task, runs, history, compare, harnessesByKey) {
       provider_config_id: run.provider_config_id,
       score: comparison.already_scored,
       submitted_by: run.submitted_by,
+      skill_names: run.skill_names ?? [],
     }
   })
   const progressEntries = activeRuns.map((run) => {
@@ -423,6 +425,7 @@ function buildLegacyRows(task, runs, history, compare, harnessesByKey) {
       retrying: Boolean(run.is_retrying),
       can_stop: Boolean(run.can_stop),
       submitted_by: run.submitted_by,
+      skill_names: run.skill_names ?? [],
     }
   })
   const failedEntries = failedRuns.map((run) => ({
@@ -434,6 +437,7 @@ function buildLegacyRows(task, runs, history, compare, harnessesByKey) {
     error_message: run.error_message,
     can_retry: run.can_retry,
     submitted_by: run.submitted_by,
+    skill_names: run.skill_names ?? [],
   }))
   const scored = entries.filter((e) => e.score != null).sort((a, b) => b.score - a.score)
   // Per-harness output counts can reveal a harness identity before the
@@ -633,6 +637,7 @@ function buildRows(task, runs, history, compare, harnessesByKey) {
         community_avg_score: comparison.community_avg_score ?? run.community_avg_score,
         community_vote_count: comparison.community_vote_count ?? run.community_vote_count,
         submitted_by: run.submitted_by,
+        skill_names: run.skill_names ?? [],
       }
     })
     const progressEntries = progressRuns.map((run) => ({
@@ -647,6 +652,7 @@ function buildRows(task, runs, history, compare, harnessesByKey) {
       retrying: Boolean(run.is_retrying),
       can_stop: Boolean(run.can_stop),
       submitted_by: run.submitted_by,
+      skill_names: run.skill_names ?? [],
     }))
     const failedEntries = failedRuns.map((run) => ({
       run_id: run.id,
@@ -658,6 +664,7 @@ function buildRows(task, runs, history, compare, harnessesByKey) {
       error_message: run.error_message || (run.status === 'stopped' ? 'Run stopped.' : ''),
       can_retry: Boolean(run.can_retry),
       submitted_by: run.submitted_by,
+      skill_names: run.skill_names ?? [],
     }))
     const judged = entries.some((entry) => entry.score != null)
     const communityJudged = entries.some((entry) => (entry.community_vote_count ?? 0) > 0)
@@ -751,6 +758,7 @@ function InProgressRuns({ entries, onStop, busyRunIds, isAdmin }) {
             <HarnessAvatar harnessKey={e.harness_key} name={e.harness_name} size={16} />
             <span className="shrink-0">{e.harness_name}</span>
             <ModelBadge model={e.model} />
+            <SkillsBadge skillNames={e.skill_names} />
             <span className={e.status === 'pending' ? 'text-ink-3' : 'text-warn'}>{e.status === 'pending' ? 'Queued' : 'Running'}</span>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {e.status === 'running' && (
@@ -812,6 +820,7 @@ function FailedRuns({ entries, onRetry, onDelete, busyRunIds, isAdmin }) {
               <HarnessAvatar harnessKey={e.harness_key} name={e.harness_name} size={16} />
               <span className="shrink-0">{e.harness_name}</span>
               <ModelBadge model={e.model} />
+              <SkillsBadge skillNames={e.skill_names} />
               {isNoDeliverableError(e.error_message) && (
                 <span
                   className="shrink-0 rounded bg-bad/15 px-1.5 py-0.5 font-mono-arena text-[10px] text-bad"
@@ -894,6 +903,16 @@ function ComparisonTable({ entries, hideDeliverableCounts }) {
               </td>
             ))}
           </tr>
+          {entries.some((e) => e.skill_names?.length) && (
+            <tr className="border-t border-line">
+              <td className="px-4 py-2 font-mono-arena text-[10px] uppercase tracking-wider text-ink-3">Skills</td>
+              {entries.map((e) => (
+                <td key={e.run_id} className="px-4 py-2">
+                  <SkillsBadge skillNames={e.skill_names} />
+                </td>
+              ))}
+            </tr>
+          )}
           <tr className="border-t border-line">
             <td className="px-4 py-2 font-mono-arena text-[10px] uppercase tracking-wider text-ink-3">Your score</td>
             {entries.map((e) => (
