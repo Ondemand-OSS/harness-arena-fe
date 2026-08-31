@@ -219,3 +219,21 @@ export function IconWarningFilled(props) {
     </svg>
   )
 }
+
+// Filled brand marks (currentColor), used at small sizes for the social
+// links rather than the stroke-icon style above.
+export function IconDiscord(props) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M20.3 5.4A18.8 18.8 0 0 0 15.7 4a13 13 0 0 0-.6 1.2 17.4 17.4 0 0 0-5.2 0A13 13 0 0 0 9.3 4a18.8 18.8 0 0 0-4.6 1.4C1.9 9.4 1.2 13.3 1.5 17.1a18.9 18.9 0 0 0 5.7 2.9c.5-.6.9-1.3 1.2-2a12.3 12.3 0 0 1-1.9-.9l.5-.4a13.5 13.5 0 0 0 11.6 0l.4.4c-.6.3-1.2.6-1.9.9.3.7.7 1.4 1.2 2a18.8 18.8 0 0 0 5.7-2.9c.4-4.4-.7-8.3-2.7-11.7ZM8.7 14.7c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8Zm6.6 0c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8Z" />
+    </svg>
+  )
+}
+
+export function IconX(props) {
+  return (
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M13.7 10.6 20.6 2.7h-1.6l-6 6.9-4.8-6.9H2.5l7.2 10.4-7.2 8.2h1.6l6.4-7.3 5.1 7.3h5.7l-7.5-10.7Zm-2.3 2.6-.7-1L4.9 3.9h2.5l4.8 6.8.7 1 6.2 8.9h-2.5l-5.1-7.4Z" />
+    </svg>
+  )
+}

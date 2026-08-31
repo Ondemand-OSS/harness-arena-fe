@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import StartJudgingButton from './StartJudgingButton.jsx'
+import SocialDock from './SocialDock.jsx'
 import {
   IconActivity,
   IconBattleLog,
@@ -68,6 +69,7 @@ export default function Sidebar({ onNavigate, onClose }) {
       </nav>
 
       <div className="mt-auto px-4 pb-4 pt-6">
+        <SocialDock className="mb-3" />
         <StartJudgingButton className="btn-cta w-full text-center text-sm" onNavigate={onNavigate} />
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-3">
           <Link to="/methodology" onClick={onNavigate} className="hover:text-ink-2">

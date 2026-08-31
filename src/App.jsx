@@ -4,6 +4,7 @@ import { api } from './api.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Seo from './components/Seo.jsx'
 import Sidebar from './components/Sidebar.jsx'
+import SocialDock from './components/SocialDock.jsx'
 import TopBar from './components/TopBar.jsx'
 import Evaluate from './pages/Evaluate.jsx'
 import Benchmark from './pages/Benchmark.jsx'
@@ -55,6 +56,10 @@ export default function App() {
     <div className="min-h-screen bg-bg font-body text-ink">
       <Seo pathname={location.pathname} />
       {rateLimitMessage && <RateLimitToast message={rateLimitMessage} onClose={() => setRateLimitMessage('')} />}
+      {/* The persistent sidebar (and its own social row) only mounts at
+       *  lg+; below that it only exists inside the slide-over nav, so
+       *  smaller screens need their own visible copy. */}
+      <SocialDock className="fixed bottom-4 left-4 z-40 lg:hidden" />
       {/* Persistent sidebar on large screens; a slide-over on small ones. */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 lg:block">
         <Sidebar />
