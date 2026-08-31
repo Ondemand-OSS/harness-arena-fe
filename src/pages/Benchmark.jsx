@@ -449,8 +449,11 @@ export default function Benchmark() {
           })}
         </div>
         {(harnessNotice || !user?.has_ondemand_api_key) && (
-          <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
-            {harnessNotice || 'Set your OnDemand API key in Setup before selecting OnDemand.'} <Link to="/setup" className="text-link">Open Setup</Link>
+          <p className="flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
+            {harnessNotice || 'Set your OnDemand API key in Setup before selecting OnDemand.'}
+            <Link to="/setup" className="btn-secondary px-2 py-1 text-xs">
+              Open Setup
+            </Link>
           </p>
         )}
         <SkillPicker

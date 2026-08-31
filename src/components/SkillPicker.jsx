@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { api } from '../api.js'
-import { OnDemandMark } from './brandLogos.jsx'
 
 const ONDEMAND_PLAYGROUND_URL = 'https://app.on-demand.io/playground'
+const ONDEMAND_SKILLS_DOCS_URL = 'https://docs.on-demand.io/docs/agent-skills'
 
 function SkillInfoModal({ skill, onClose }) {
   useEffect(() => {
@@ -89,12 +89,11 @@ export default function SkillPicker({ selectedSkillIds, onChange }) {
     return (
       <div className="mt-4 border-t border-line pt-4">
         <p className="eyebrow">Skills</p>
-        <p className="mt-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
-          Set your OnDemand API key in Setup to use skills. Make one on{' '}
-          <a href={ONDEMAND_PLAYGROUND_URL} target="_blank" rel="noreferrer" className="text-link">
-            app.on-demand.io/playground ↗
-          </a>{' '}
-          then <Link to="/setup" className="text-link">open Setup</Link>.
+        <p className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
+          Set your OnDemand API key in Setup to use skills.
+          <Link to="/setup" className="btn-secondary px-2 py-1 text-xs">
+            Open Setup
+          </Link>
         </p>
       </div>
     )
@@ -111,44 +110,33 @@ export default function SkillPicker({ selectedSkillIds, onChange }) {
             </span>
           )}
         </p>
-        <span className="flex items-center gap-2">
-          <span className="text-xs text-ink-3">Added a new skill?</span>
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            // btn-secondary's own `display: inline-block` (theme.css) beats
-            // Tailwind's `flex` class in the cascade, which stacked the icon
-            // above the label instead of beside it — the inline style wins.
-            style={{ display: 'inline-flex' }}
-            className="btn-secondary shrink-0 items-center gap-1.5 px-2.5 py-1 text-xs disabled:opacity-50"
+        <a href={ONDEMAND_SKILLS_DOCS_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-link">
+          How to add skills
+          <span
+            aria-hidden="true"
+            className="grid h-3.5 w-3.5 place-items-center rounded-full border border-current text-[9px] leading-none"
           >
-            {loading ? (
-              <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-cta" aria-hidden="true" />
-            ) : (
-              // The mark is a white-only logo meant for a colored chip (see
-              // HarnessAvatar) — bare on this button's background it's
-              // invisible/looks broken, so it gets the same dark backing here.
-              <span
-                className="grid h-4 w-4 shrink-0 place-items-center rounded-full"
-                style={{ background: '#111111' }}
-                aria-hidden="true"
-              >
-                <OnDemandMark className="h-2.5 w-2.5" />
-              </span>
-            )}
-            {loading ? 'Fetching…' : 'Fetch from OnDemand'}
-          </button>
-        </span>
+            ?
+          </span>
+        </a>
       </div>
-      {error && <p className="mt-2 text-sm text-bad">{error}</p>}
+      {loading && <p className="mt-2 text-xs text-ink-3">Fetching skills…</p>}
+      {error && (
+        <p className="mt-2 text-sm text-bad">
+          {error} <button type="button" onClick={load} className="text-link">Retry</button>
+        </p>
+      )}
       {!error && !loading && skills.length === 0 && (
-        <p className="mt-2 text-sm text-ink-2">
-          No subscribed skills yet. Add one on{' '}
-          <a href={ONDEMAND_PLAYGROUND_URL} target="_blank" rel="noreferrer" className="text-link">
-            app.on-demand.io/playground ↗
+        <p className="mt-2 flex items-center gap-2 text-sm text-ink-2">
+          No subscribed skills yet.
+          <a
+            href={ONDEMAND_PLAYGROUND_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary inline-flex items-center gap-1 px-2 py-1 text-xs"
+          >
+            <span aria-hidden="true">+</span> Add here
           </a>
-          , then Refresh.
         </p>
       )}
       <div className="mt-2 flex max-h-52 flex-wrap gap-2 overflow-y-auto pr-1">
