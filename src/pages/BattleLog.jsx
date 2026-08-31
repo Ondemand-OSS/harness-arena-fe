@@ -1336,6 +1336,7 @@ function mapBoardProgressEntry(entry) {
     retrying: Boolean(entry.is_retrying ?? entry.retrying),
     can_stop: Boolean(entry.can_stop),
     submitted_by: entry.submitted_by,
+    skill_names: entry.skill_names ?? [],
   }
 }
 
@@ -1350,6 +1351,7 @@ function mapBoardFailedEntry(entry) {
     error_message: entry.error_message || (entry.status === 'stopped' ? 'Run stopped.' : ''),
     can_retry: Boolean(entry.can_retry),
     submitted_by: entry.submitted_by,
+    skill_names: entry.skill_names ?? [],
   }
 }
 
