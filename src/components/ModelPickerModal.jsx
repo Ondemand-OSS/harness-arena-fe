@@ -138,8 +138,11 @@ export default function ModelPickerModal({ profiles, runs, harnesses, initialHar
               })}
             </div>
             {(harnessNotice || !hasOndemandKey) && (
-              <p className="mt-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
-                {harnessNotice || 'Set your OnDemand API key in Setup before selecting OnDemand.'} <Link to="/setup" className="text-link" onClick={onClose}>Open Setup</Link>
+              <p className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-ink-2" role="status">
+                {harnessNotice || 'Set your OnDemand API key in Setup before selecting OnDemand.'}
+                <Link to="/setup" className="btn-secondary px-2 py-1 text-xs" onClick={onClose}>
+                  Open Setup
+                </Link>
               </p>
             )}
             <p className={`mt-2 text-xs ${harnessKeys.length >= 2 ? 'text-ink-3' : 'text-warn'}`}>
