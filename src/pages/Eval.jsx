@@ -521,9 +521,10 @@ export default function Eval() {
 
     const loadComparison = async () => {
       try {
-        const runs = await api.listRunsForTask(taskId)
+        const runs = await api.listRunsForTask(taskId, providerConfigId)
         if (cancelled) return
-        if (runs.some((run) => run.status === 'pending' || run.status === 'running')) {
+        const relevantRuns = runIds.length ? runs.filter((run) => runIds.includes(run.id)) : runs
+        if (relevantRuns.some((run) => run.status === 'pending' || run.status === 'running')) {
           setTaskInProgress(true)
           setCompareData(null)
           retryTimer = window.setTimeout(loadComparison, 3000)
