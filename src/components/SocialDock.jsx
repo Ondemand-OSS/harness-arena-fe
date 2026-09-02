@@ -8,7 +8,8 @@ import { IconDiscord, IconX } from './icons.jsx'
 // theme.css).
 const LINKS = [
   {
-    href: 'https://discord.com/invite/fhGPEaDJ5T',
+    // href: 'https://discord.com/invite/fhGPEaDJ5T',
+    href: 'https://discord.com/invite/harness-arena',
     label: 'Join our Discord',
     Icon: IconDiscord,
     bg: '#5865F2',
