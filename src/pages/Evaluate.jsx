@@ -590,15 +590,21 @@ export default function Evaluate({ group, onGroupChange }) {
   // once, that's the exact N+1 pattern the bulk runsOverview effect above
   // was already built to avoid, just reintroduced here on a 4s timer. One
   // bulk call for every in-flight task together, same as the initial load.
+  const pollInFlightRef = useRef(false)
   useEffect(() => {
     const timer = setInterval(() => {
+      if (pollInFlightRef.current) return
       const inFlightIds = tasksRef.current
         .filter((t) =>
           runsByTaskRef.current[t.id_aa]?.some((r) => r.status === 'pending' || r.status === 'running')
         )
         .map((t) => t.id_aa)
       if (!inFlightIds.length) return
-      api.runsOverview(inFlightIds).then(applyOverviewRows).catch(() => {})
+      pollInFlightRef.current = true
+      api.runsOverview(inFlightIds)
+        .then(applyOverviewRows)
+        .catch(() => {})
+        .finally(() => { pollInFlightRef.current = false })
     }, 4000)
     return () => clearInterval(timer)
   }, [applyOverviewRows])
